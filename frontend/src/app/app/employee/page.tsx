@@ -1,48 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAccount, usePublicClient } from "wagmi";
+import { formatUnits } from "viem";
 import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
-import { PaymentHistory, type Payment } from "~/app/brutalist/_components/employee/PaymentHistory";
+import {
+  PaymentHistory,
+  type Payment,
+} from "~/app/brutalist/_components/employee/PaymentHistory";
 import { ProofGenerator } from "~/app/brutalist/_components/employee/ProofGenerator";
 import { CredentialCard } from "~/app/brutalist/_components/employee/CredentialCard";
-
-const mockPayments: Payment[] = [
-  {
-    id: "1",
-    date: "Jan 31, 2025",
-    amount: 6250.0,
-    status: "success",
-    txHash: "0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2",
-  },
-  {
-    id: "2",
-    date: "Dec 31, 2024",
-    amount: 6250.0,
-    status: "success",
-    txHash: "0xf1e2d3c4b5a6f7e8d9c0b1a2f3e4d5c6b7a8f9e0d1c2b3a4f5e6d7c8b9a0f1e2",
-  },
-  {
-    id: "3",
-    date: "Nov 30, 2024",
-    amount: 6250.0,
-    status: "success",
-    txHash: "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-  },
-  {
-    id: "4",
-    date: "Oct 31, 2024",
-    amount: 6250.0,
-    status: "success",
-    txHash: "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-  },
-  {
-    id: "5",
-    date: "Sep 30, 2024",
-    amount: 6250.0,
-    status: "success",
-    txHash: "0x567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234",
-  },
-];
+import { CONTRACTS } from "~/lib/contracts";
 
 interface Credential {
   threshold: number;
@@ -51,11 +19,83 @@ interface Credential {
 }
 
 export default function EmployeePage() {
+  const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
   const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  const totalEarned = mockPayments.reduce((sum, p) => sum + p.amount, 0);
+  // Reset credentials when wallet changes
+  useEffect(() => {
+    setCredentials([]);
+  }, [address]);
 
-  const handleProofGenerated = (proof: { threshold: number; proofData: string }) => {
+  // Fetch payment events from on-chain logs
+  useEffect(() => {
+    if (!address || !publicClient) return;
+
+    const fetchPayments = async () => {
+      setFetchError(null);
+      try {
+        // Plasma RPC limits eth_getLogs to 10,000 blocks per query
+        const currentBlock = await publicClient.getBlockNumber();
+        const fromBlock = currentBlock > 9999n ? currentBlock - 9999n : 1n;
+
+        const logs = await publicClient.getLogs({
+          address: CONTRACTS.PaymentExecutor as `0x${string}`,
+          event: {
+            type: "event",
+            name: "PaymentExecuted",
+            inputs: [
+              { name: "employer", type: "address", indexed: true },
+              { name: "employee", type: "address", indexed: true },
+              { name: "amount", type: "uint256", indexed: false },
+              { name: "commitment", type: "bytes32", indexed: false },
+              { name: "timestamp", type: "uint256", indexed: false },
+            ],
+          },
+          args: { employee: address },
+          fromBlock,
+          toBlock: "latest",
+        });
+
+        const parsed: Payment[] = logs.map((log, i) => {
+          const amount = log.args.amount ?? 0n;
+          const timestamp = log.args.timestamp ?? 0n;
+          const date = new Date(Number(timestamp) * 1000);
+
+          return {
+            id: String(i),
+            date: date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+            amount: Number(formatUnits(amount, 6)),
+            status: "success" as const,
+            txHash: log.transactionHash ?? "0x",
+          };
+        });
+
+        setPayments(parsed.reverse());
+      } catch (err) {
+        console.error("Failed to fetch payment logs:", err);
+        setFetchError(
+          err instanceof Error ? err.message : "Failed to fetch payments",
+        );
+        setPayments([]);
+      }
+    };
+
+    void fetchPayments();
+  }, [address, publicClient]);
+
+  const totalEarned = payments.reduce((sum, p) => sum + p.amount, 0);
+
+  const handleProofGenerated = (proof: {
+    threshold: number;
+    proofData: string;
+  }) => {
     setCredentials((prev) => [
       {
         ...proof,
@@ -71,6 +111,21 @@ export default function EmployeePage() {
     ]);
   };
 
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="neo-card max-w-md text-center">
+          <h2 className="text-2xl font-black uppercase tracking-wider">
+            CONNECT WALLET
+          </h2>
+          <p className="mt-2 text-sm text-black/50">
+            Connect your wallet to view payments and generate proofs.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -82,6 +137,12 @@ export default function EmployeePage() {
         </p>
       </div>
 
+      {fetchError && (
+        <div className="border-4 border-yellow-500 bg-yellow-50 p-3 text-center text-xs font-bold text-yellow-700">
+          Log query failed: {fetchError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DashboardCard
           title="Total Earned"
@@ -92,7 +153,7 @@ export default function EmployeePage() {
         />
         <DashboardCard
           title="Payments Received"
-          value={String(mockPayments.length)}
+          value={String(payments.length)}
           subtitle="On-chain verified"
           icon="TXN"
           delay={0.1}
@@ -108,10 +169,13 @@ export default function EmployeePage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <PaymentHistory payments={mockPayments} />
+          <PaymentHistory payments={payments} />
         </div>
         <div>
-          <ProofGenerator onProofGenerated={handleProofGenerated} />
+          <ProofGenerator
+            onProofGenerated={handleProofGenerated}
+            employeeAddress={address}
+          />
         </div>
       </div>
 

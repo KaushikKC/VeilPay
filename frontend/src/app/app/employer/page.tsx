@@ -1,85 +1,115 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
-import { EmployeeTable, type Employee } from "~/app/brutalist/_components/employer/EmployeeTable";
+import {
+  EmployeeTable,
+  type Employee,
+} from "~/app/brutalist/_components/employer/EmployeeTable";
 import { AddEmployeeModal } from "~/app/brutalist/_components/employer/AddEmployeeModal";
 import { PayrollAction } from "~/app/brutalist/_components/employer/PayrollAction";
+import {
+  useGetEmployees,
+  useRegisterEmployee,
+  useRemoveEmployee,
+} from "~/lib/hooks/usePayrollRegistry";
 
-const initialEmployees: Employee[] = [
-  {
-    id: "1",
-    name: "Alice Johnson",
-    walletAddress: "0x1a2B3c4D5e6F7890AbCdEf1234567890aBcDeF12",
-    salary: 95000,
-    status: "active",
-    lastPaid: "Jan 31, 2025",
-  },
-  {
-    id: "2",
-    name: "Bob Martinez",
-    walletAddress: "0x9876543210fEdCbA0987654321FeDcBa09876543",
-    salary: 72000,
-    status: "active",
-    lastPaid: "Jan 31, 2025",
-  },
-  {
-    id: "3",
-    name: "Carol Chen",
-    walletAddress: "0xAbCdEf1234567890aBcDeF12345678901a2B3c4D",
-    salary: 115000,
-    status: "active",
-    lastPaid: "Jan 31, 2025",
-  },
-  {
-    id: "4",
-    name: "David Park",
-    walletAddress: "0xFeDcBa09876543210fEdCbA09876543219876543",
-    salary: 68000,
-    status: "inactive",
-  },
-];
+interface EmployeeData {
+  name: string;
+  salary: number;
+}
 
 export default function EmployerPage() {
-  const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
+  const { address, isConnected } = useAccount();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [paymentsThisMonth, setPaymentsThisMonth] = useState(3);
+  const [employeeNames, setEmployeeNames] = useState<
+    Record<string, EmployeeData>
+  >(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = localStorage.getItem("veilpay_employees");
+      return stored ? (JSON.parse(stored) as Record<string, EmployeeData>) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [paymentCount, setPaymentCount] = useState(0);
+
+  // Persist employee data to localStorage
+  useEffect(() => {
+    localStorage.setItem("veilpay_employees", JSON.stringify(employeeNames));
+  }, [employeeNames]);
+
+  const { data: onChainEmployees, refetch: refetchEmployees } =
+    useGetEmployees(address);
+
+  const {
+    registerEmployee,
+    isPending: isRegistering,
+    isConfirming: isRegConfirming,
+  } = useRegisterEmployee();
+
+  const { removeEmployee: removeEmployeeOnChain } = useRemoveEmployee();
+
+  // Build employee list from on-chain addresses + local name/salary store
+  const employees: Employee[] = (onChainEmployees ?? []).map((addr, i) => {
+    const lower = addr.toLowerCase();
+    const data = employeeNames[lower];
+    return {
+      id: String(i),
+      name: data?.name ?? `Employee ${i + 1}`,
+      walletAddress: addr,
+      salary: data?.salary ?? 0,
+      status: "active" as const,
+    };
+  });
 
   const activeEmployees = employees.filter((e) => e.status === "active");
   const totalPayroll = activeEmployees.reduce((sum, e) => sum + e.salary, 0);
 
-  const handleAddEmployee = (data: { name: string; walletAddress: string; salary: number }) => {
-    const newEmployee: Employee = {
-      id: String(Date.now()),
-      name: data.name,
-      walletAddress: data.walletAddress,
-      salary: data.salary,
-      status: "active",
-    };
-    setEmployees((prev) => [...prev, newEmployee]);
-  };
+  const handleAddEmployee = useCallback(
+    (data: { name: string; walletAddress: string; salary: number }) => {
+      const addr = data.walletAddress.toLowerCase();
+      setEmployeeNames((prev) => ({
+        ...prev,
+        [addr]: { name: data.name, salary: data.salary },
+      }));
+      registerEmployee(data.walletAddress as `0x${string}`);
+      setTimeout(() => void refetchEmployees(), 3000);
+    },
+    [registerEmployee, refetchEmployees],
+  );
 
-  const handleRemoveEmployee = (id: string) => {
-    setEmployees((prev) => prev.filter((e) => e.id !== id));
-  };
+  const handleRemoveEmployee = useCallback(
+    (id: string) => {
+      const emp = employees.find((e) => e.id === id);
+      if (!emp) return;
+      removeEmployeeOnChain(emp.walletAddress as `0x${string}`);
+      setTimeout(() => void refetchEmployees(), 3000);
+    },
+    [employees, removeEmployeeOnChain, refetchEmployees],
+  );
 
-  const handleProcessPayroll = () => {
-    setPaymentsThisMonth((prev) => prev + 1);
-    setEmployees((prev) =>
-      prev.map((e) =>
-        e.status === "active"
-          ? {
-              ...e,
-              lastPaid: new Date().toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              }),
-            }
-          : e
-      )
+  const handleProcessPayroll = useCallback(() => {
+    setPaymentCount((prev) => prev + 1);
+    setTimeout(() => void refetchEmployees(), 3000);
+  }, [refetchEmployees]);
+
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="neo-card max-w-md text-center">
+          <h2 className="text-2xl font-black uppercase tracking-wider">
+            CONNECT WALLET
+          </h2>
+          <p className="mt-2 text-sm text-black/50">
+            Connect your wallet to manage payroll and employees.
+          </p>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -109,7 +139,7 @@ export default function EmployerPage() {
         />
         <DashboardCard
           title="Payments This Month"
-          value={String(paymentsThisMonth)}
+          value={String(paymentCount)}
           subtitle="ZK commitments"
           icon="TXN"
           delay={0.2}
@@ -127,13 +157,18 @@ export default function EmployerPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <EmployeeTable employees={employees} onRemove={handleRemoveEmployee} />
+          <EmployeeTable
+            employees={employees}
+            onRemove={handleRemoveEmployee}
+          />
         </div>
         <div>
           <PayrollAction
             employeeCount={activeEmployees.length}
             totalPayroll={totalPayroll}
             onProcess={handleProcessPayroll}
+            employees={activeEmployees}
+            employerAddress={address}
           />
         </div>
       </div>
@@ -142,6 +177,7 @@ export default function EmployerPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddEmployee}
+        isPending={isRegistering || isRegConfirming}
       />
     </div>
   );

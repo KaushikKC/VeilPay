@@ -2,42 +2,127 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { parseUnits } from "viem";
+import { useWriteContract, usePublicClient } from "wagmi";
+import { type Employee } from "./EmployeeTable";
+import { CONTRACTS, ERC20ABI, PaymentExecutorABI } from "~/lib/contracts";
+
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
 
 interface PayrollActionProps {
   employeeCount: number;
   totalPayroll: number;
   onProcess: () => void;
+  employees?: Employee[];
+  employerAddress?: `0x${string}`;
 }
 
 const payrollSteps = [
   "Generating salary commitments...",
   "Creating Poseidon hashes...",
-  "Submitting to PayrollRegistry...",
-  "Executing USDC transfers...",
+  "Approving USDT spend...",
+  "Executing batch payment...",
   "Confirming on-chain...",
 ];
 
-export function PayrollAction({ employeeCount, totalPayroll, onProcess }: PayrollActionProps) {
-  const [state, setState] = useState<"idle" | "confirming" | "processing" | "success">("idle");
+export function PayrollAction({
+  employeeCount,
+  totalPayroll,
+  onProcess,
+  employees = [],
+  employerAddress,
+}: PayrollActionProps) {
+  const [state, setState] = useState<
+    "idle" | "confirming" | "processing" | "success" | "error"
+  >("idle");
   const [currentStep, setCurrentStep] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [txHash, setTxHash] = useState<string | undefined>();
 
-  const handleProcess = () => {
+  const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
+
+  const handleProcess = async () => {
+    if (!employerAddress || employees.length === 0) return;
+
     setState("processing");
     setCurrentStep(0);
+    setErrorMsg("");
 
-    // Simulate steps
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      if (step >= payrollSteps.length) {
-        clearInterval(interval);
-        onProcess();
-        setState("success");
-        setTimeout(() => setState("idle"), 3000);
-      } else {
-        setCurrentStep(step);
+    try {
+      // Step 0 & 1: Generate commitments via backend
+      const commitmentResults = [];
+      for (const emp of employees) {
+        const res = await fetch(`${BACKEND_URL}/api/commitments/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeAddress: emp.walletAddress,
+            salary: emp.salary,
+          }),
+        });
+        if (!res.ok) throw new Error(`Failed to create commitment for ${emp.walletAddress}`);
+        commitmentResults.push(await res.json() as {
+          commitment: string;
+          nonce: string;
+        });
       }
-    }, 500);
+      setCurrentStep(1);
+
+      // Prepare batch arrays
+      const addresses = employees.map(
+        (e) => e.walletAddress as `0x${string}`,
+      );
+      const amounts = employees.map((e) =>
+        parseUnits(String(Math.round(e.salary / 12)), 6),
+      );
+      const commitments = commitmentResults.map(
+        (c) => c.commitment as `0x${string}`,
+      );
+      const totalAmount = amounts.reduce((sum, a) => sum + a, 0n);
+
+      setCurrentStep(2);
+
+      // Step 2: Approve USDT and wait for confirmation
+      const approveHash = await writeContractAsync({
+        address: CONTRACTS.USDT as `0x${string}`,
+        abi: ERC20ABI,
+        functionName: "approve",
+        args: [CONTRACTS.PaymentExecutor as `0x${string}`, totalAmount],
+      });
+
+      // Wait for approve tx to be mined before calling batchPay
+      if (publicClient) {
+        await publicClient.waitForTransactionReceipt({ hash: approveHash });
+      }
+
+      setCurrentStep(3);
+
+      // Step 3: Batch pay
+      const payHash = await writeContractAsync({
+        address: CONTRACTS.PaymentExecutor as `0x${string}`,
+        abi: PaymentExecutorABI,
+        functionName: "batchPayEmployees",
+        args: [addresses, amounts, commitments],
+      });
+
+      setTxHash(payHash);
+      setCurrentStep(4);
+
+      // Wait a moment for confirmation visibility
+      await new Promise((r) => setTimeout(r, 1500));
+
+      onProcess();
+      setState("success");
+      setTimeout(() => setState("idle"), 4000);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Transaction failed";
+      setErrorMsg(message);
+      setState("error");
+      setTimeout(() => setState("idle"), 5000);
+    }
   };
 
   return (
@@ -65,7 +150,10 @@ export function PayrollAction({ employeeCount, totalPayroll, onProcess }: Payrol
             className="font-bold text-[#00d6bd]"
             style={{ fontFamily: "var(--font-neo-mono), monospace" }}
           >
-            ${(totalPayroll / 12).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            $
+            {(totalPayroll / 12).toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+            })}
           </span>
         </div>
         <div className="mt-2 flex justify-between text-sm">
@@ -112,7 +200,7 @@ export function PayrollAction({ employeeCount, totalPayroll, onProcess }: Payrol
                 Cancel
               </button>
               <button
-                onClick={handleProcess}
+                onClick={() => void handleProcess()}
                 className="neo-button flex-1 text-xs"
               >
                 Confirm
@@ -139,7 +227,10 @@ export function PayrollAction({ employeeCount, totalPayroll, onProcess }: Payrol
                       ? "neo-step-active"
                       : "neo-step-pending"
                 }
-                style={{ fontFamily: "var(--font-neo-mono), monospace", fontSize: "0.75rem" }}
+                style={{
+                  fontFamily: "var(--font-neo-mono), monospace",
+                  fontSize: "0.75rem",
+                }}
               >
                 {i < currentStep ? "// " : i === currentStep ? "> " : "  "}
                 {step}
@@ -163,6 +254,36 @@ export function PayrollAction({ employeeCount, totalPayroll, onProcess }: Payrol
               </p>
               <p className="text-xs text-black/40">
                 {employeeCount} ZK commitments created on-chain
+              </p>
+              {txHash && (
+                <p
+                  className="mt-1 text-xs text-black/30"
+                  style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+                >
+                  tx: {txHash.slice(0, 10)}...{txHash.slice(-6)}
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {state === "error" && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="mt-4"
+          >
+            <div className="border-4 border-red-400 bg-red-50 p-4 text-center">
+              <span className="text-3xl text-red-500">X</span>
+              <p className="mt-2 text-sm font-bold text-red-600">
+                Payroll failed
+              </p>
+              <p className="mt-1 text-xs text-black/40">
+                {errorMsg.length > 100
+                  ? errorMsg.slice(0, 100) + "..."
+                  : errorMsg}
               </p>
             </div>
           </motion.div>

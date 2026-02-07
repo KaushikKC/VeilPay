@@ -7,9 +7,10 @@ interface AddEmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (employee: { name: string; walletAddress: string; salary: number }) => void;
+  isPending?: boolean;
 }
 
-export function AddEmployeeModal({ isOpen, onClose, onAdd }: AddEmployeeModalProps) {
+export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending }: AddEmployeeModalProps) {
   const [name, setName] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
   const [salary, setSalary] = useState("");
@@ -113,8 +114,12 @@ export function AddEmployeeModal({ isOpen, onClose, onAdd }: AddEmployeeModalPro
                 >
                   Cancel
                 </button>
-                <button type="submit" className="neo-button flex-1 text-xs">
-                  Add Employee
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="neo-button flex-1 text-xs"
+                >
+                  {isPending ? "Registering..." : "Add Employee"}
                 </button>
               </div>
             </form>

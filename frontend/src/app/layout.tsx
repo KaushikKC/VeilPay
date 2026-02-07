@@ -5,6 +5,7 @@ import { type Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { Web3Provider } from "~/app/_components/providers/Web3Provider";
 
 export const metadata: Metadata = {
   title: "VeilPay — ZK Credentials & Private Payroll",
@@ -35,7 +36,9 @@ export default function RootLayout({
             "var(--font-neo-body), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
         }}
       >
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <Web3Provider>{children}</Web3Provider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

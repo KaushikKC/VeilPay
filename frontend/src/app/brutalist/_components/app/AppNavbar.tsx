@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ConnectWalletButton } from "./ConnectWalletButton";
 
 const tabs = [
   { label: "EMPLOYER", href: "/app/employer" },
@@ -22,7 +23,7 @@ export function AppNavbar() {
           VEILPAY
         </Link>
 
-        <div className="flex">
+        <div className="flex items-center">
           {tabs.map((tab) => {
             const isActive = pathname === tab.href;
             return (
@@ -39,6 +40,9 @@ export function AppNavbar() {
               </Link>
             );
           })}
+          <div className="border-l-4 border-black px-4 py-2">
+            <ConnectWalletButton />
+          </div>
         </div>
       </div>
     </nav>

@@ -3,14 +3,19 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3001";
+
 interface ProofGeneratorProps {
   onProofGenerated: (proof: { threshold: number; proofData: string }) => void;
+  employeeAddress?: `0x${string}`;
 }
 
 const thresholds = [
+  { value: 1, label: "$1", description: "Testnet demo" },
+  { value: 10, label: "$10", description: "Basic verification" },
   { value: 50000, label: "$50,000", description: "Rental qualification" },
   { value: 100000, label: "$100,000", description: "Premium services" },
-  { value: 200000, label: "$200,000", description: "Accredited investor" },
 ];
 
 const proofSteps = [
@@ -21,39 +26,88 @@ const proofSteps = [
   "Packaging credential...",
 ];
 
-export function ProofGenerator({ onProofGenerated }: ProofGeneratorProps) {
-  const [selectedThreshold, setSelectedThreshold] = useState<number | null>(null);
-  const [state, setState] = useState<"idle" | "generating" | "done">("idle");
+export function ProofGenerator({
+  onProofGenerated,
+  employeeAddress,
+}: ProofGeneratorProps) {
+  const [selectedThreshold, setSelectedThreshold] = useState<number | null>(
+    null,
+  );
+  const [state, setState] = useState<
+    "idle" | "generating" | "done" | "error"
+  >("idle");
   const [currentStep, setCurrentStep] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleGenerate = () => {
-    if (selectedThreshold === null) return;
+  const handleGenerate = async () => {
+    if (selectedThreshold === null || !employeeAddress) return;
     setState("generating");
     setCurrentStep(0);
+    setErrorMsg("");
 
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      if (step >= proofSteps.length) {
-        clearInterval(interval);
-        setState("done");
+    try {
+      // Step 0: Fetch employee data from backend
+      const empRes = await fetch(
+        `${BACKEND_URL}/api/commitments/employee/${employeeAddress}`,
+      );
+      if (!empRes.ok) throw new Error("Employee data not found. Process payroll first.");
+      const empData = (await empRes.json()) as {
+        salary: string;
+        nonce: string;
+        commitment: string;
+      };
+      setCurrentStep(1);
 
-        const mockProof = btoa(
-          JSON.stringify({
-            pi_a: ["0x1a2b3c...", "0x4d5e6f..."],
-            pi_b: [["0x7a8b9c...", "0x0d1e2f..."], ["0x3a4b5c...", "0x6d7e8f..."]],
-            pi_c: ["0x9a0b1c...", "0x2d3e4f..."],
-            publicSignals: [String(selectedThreshold), "0xnullifier..."],
-            protocol: "groth16",
-            curve: "bn128",
-          })
-        );
+      // Step 1-2: Generate proof via backend
+      setCurrentStep(2);
+      const proofRes = await fetch(`${BACKEND_URL}/api/proofs/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          salary: empData.salary,
+          nonce: empData.nonce,
+          employeeAddress: employeeAddress,
+          threshold: String(selectedThreshold),
+          commitment: empData.commitment,
+        }),
+      });
 
-        onProofGenerated({ threshold: selectedThreshold, proofData: mockProof });
-      } else {
-        setCurrentStep(step);
+      if (!proofRes.ok) {
+        const errBody = await proofRes.json().catch(() => ({})) as { error?: string };
+        throw new Error(errBody.error ?? "Proof generation failed");
       }
-    }, 500);
+
+      const proofData = (await proofRes.json()) as {
+        proof: object;
+        publicSignals: string[];
+        solidityCalldata: string;
+      };
+      setCurrentStep(3);
+
+      // Step 3-4: Verify locally + package
+      await new Promise((r) => setTimeout(r, 500));
+      setCurrentStep(4);
+      await new Promise((r) => setTimeout(r, 500));
+
+      setState("done");
+
+      const encodedProof = btoa(
+        JSON.stringify({
+          proof: proofData.proof,
+          publicSignals: proofData.publicSignals,
+          solidityCalldata: proofData.solidityCalldata,
+          protocol: "groth16",
+          curve: "bn128",
+        }),
+      );
+
+      onProofGenerated({ threshold: selectedThreshold, proofData: encodedProof });
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Proof generation failed";
+      setErrorMsg(message);
+      setState("error");
+    }
   };
 
   return (
@@ -100,7 +154,7 @@ export function ProofGenerator({ onProofGenerated }: ProofGeneratorProps) {
               key={t.value}
               onClick={() => {
                 setSelectedThreshold(t.value);
-                setState("idle");
+                if (state === "done" || state === "error") setState("idle");
               }}
               className={`border-4 p-3 text-left transition-all ${
                 selectedThreshold === t.value
@@ -127,7 +181,7 @@ export function ProofGenerator({ onProofGenerated }: ProofGeneratorProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={handleGenerate}
+            onClick={() => void handleGenerate()}
             disabled={selectedThreshold === null}
             className="neo-button mt-6 w-full text-xs"
           >
@@ -153,7 +207,10 @@ export function ProofGenerator({ onProofGenerated }: ProofGeneratorProps) {
                       ? "neo-step-active"
                       : "neo-step-pending"
                 }
-                style={{ fontFamily: "var(--font-neo-mono), monospace", fontSize: "0.75rem" }}
+                style={{
+                  fontFamily: "var(--font-neo-mono), monospace",
+                  fontSize: "0.75rem",
+                }}
               >
                 {i < currentStep ? "// " : i === currentStep ? "> " : "  "}
                 {step}
@@ -186,6 +243,34 @@ export function ProofGenerator({ onProofGenerated }: ProofGeneratorProps) {
                 className="mt-3 text-xs font-bold text-[#00d6bd] underline underline-offset-2 hover:text-[#008a7a]"
               >
                 Generate another proof
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {state === "error" && (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="mt-6"
+          >
+            <div className="border-4 border-red-400 bg-red-50 p-4 text-center">
+              <span className="text-3xl text-red-500">X</span>
+              <p className="mt-2 text-sm font-bold text-red-600">
+                Proof generation failed
+              </p>
+              <p className="mt-1 text-xs text-black/40">
+                {errorMsg.length > 120
+                  ? errorMsg.slice(0, 120) + "..."
+                  : errorMsg}
+              </p>
+              <button
+                onClick={() => setState("idle")}
+                className="mt-3 text-xs font-bold text-red-500 underline underline-offset-2 hover:text-red-700"
+              >
+                Try again
               </button>
             </div>
           </motion.div>

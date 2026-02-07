@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface VerificationResultProps {
@@ -8,38 +7,18 @@ interface VerificationResultProps {
   threshold?: number;
   onReset: () => void;
   onComplete?: (success: boolean) => void;
+  txHash?: string;
+  failReason?: string;
 }
 
-const verificationSteps = [
-  "Parsing proof structure...",
-  "Validating Groth16 parameters...",
-  "Checking public signals...",
-  "Verifying on BN128 curve...",
-  "On-chain verification...",
-];
-
-export function VerificationResult({ status, threshold, onReset, onComplete }: VerificationResultProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-
-  useEffect(() => {
-    if (status !== "verifying") return;
-
-    setCurrentStep(0);
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      if (step >= verificationSteps.length) {
-        clearInterval(interval);
-        const success = Math.random() > 0.1;
-        onComplete?.(success);
-      } else {
-        setCurrentStep(step);
-      }
-    }, 450);
-
-    return () => clearInterval(interval);
-  }, [status, onComplete]);
-
+export function VerificationResult({
+  status,
+  threshold,
+  onReset,
+  onComplete: _onComplete,
+  txHash,
+  failReason,
+}: VerificationResultProps) {
   return (
     <AnimatePresence mode="wait">
       {status === "verifying" && (
@@ -55,23 +34,28 @@ export function VerificationResult({ status, threshold, onReset, onComplete }: V
               VERIFYING
             </p>
             <div className="mt-4 w-full space-y-2">
-              {verificationSteps.map((step, i) => (
-                <div
-                  key={step}
-                  className={
-                    i < currentStep
-                      ? "neo-step-done"
-                      : i === currentStep
-                        ? "neo-step-active"
-                        : "neo-step-pending"
-                  }
-                  style={{ fontFamily: "var(--font-neo-mono), monospace", fontSize: "0.75rem" }}
-                >
-                  {i < currentStep ? "// " : i === currentStep ? "> " : "  "}
-                  {step}
-                </div>
-              ))}
+              <div
+                className="neo-step-active"
+                style={{
+                  fontFamily: "var(--font-neo-mono), monospace",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {">"} Submitting proof to CredentialVerifier...
+              </div>
+              <div
+                className="neo-step-pending"
+                style={{
+                  fontFamily: "var(--font-neo-mono), monospace",
+                  fontSize: "0.75rem",
+                }}
+              >
+                {"  "}Awaiting on-chain confirmation...
+              </div>
             </div>
+            <p className="mt-4 text-xs text-black/40">
+              Confirm the transaction in your wallet
+            </p>
           </div>
         </motion.div>
       )}
@@ -89,7 +73,12 @@ export function VerificationResult({ status, threshold, onReset, onComplete }: V
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.2 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 15,
+                  delay: 0.2,
+                }}
                 className="flex h-16 w-16 items-center justify-center border-4 border-[#00d6bd] bg-[#00d6bd]/20 text-3xl font-black"
               >
                 &#x2713;
@@ -110,7 +99,7 @@ export function VerificationResult({ status, threshold, onReset, onComplete }: V
                 transition={{ delay: 0.6 }}
                 className="mt-2 text-black/60"
               >
-                Credential is valid
+                Credential verified on-chain
               </motion.p>
 
               <motion.div
@@ -119,7 +108,9 @@ export function VerificationResult({ status, threshold, onReset, onComplete }: V
                 transition={{ delay: 0.8 }}
                 className="mt-4 w-full border-4 border-black bg-gray-50 p-4"
               >
-                <p className="text-xs font-bold text-black/40">Confirmed Statement</p>
+                <p className="text-xs font-bold text-black/40">
+                  Confirmed Statement
+                </p>
                 <p className="mt-1 text-sm font-bold">
                   Applicant earns &gt; ${threshold?.toLocaleString()}/year
                 </p>
@@ -141,15 +132,32 @@ export function VerificationResult({ status, threshold, onReset, onComplete }: V
                     key={row.label}
                     className="flex justify-between border-2 border-black/10 bg-gray-50 px-4 py-2 text-xs"
                   >
-                    <span className="font-bold text-black/40">{row.label}</span>
+                    <span className="font-bold text-black/40">
+                      {row.label}
+                    </span>
                     <span
                       className={`font-bold ${row.accent ? "text-[#00d6bd]" : "text-black/60"}`}
-                      style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+                      style={{
+                        fontFamily: "var(--font-neo-mono), monospace",
+                      }}
                     >
                       {row.value}
                     </span>
                   </div>
                 ))}
+                {txHash && (
+                  <div className="flex justify-between border-2 border-black/10 bg-gray-50 px-4 py-2 text-xs">
+                    <span className="font-bold text-black/40">Tx Hash</span>
+                    <span
+                      className="font-bold text-black/60"
+                      style={{
+                        fontFamily: "var(--font-neo-mono), monospace",
+                      }}
+                    >
+                      {txHash.slice(0, 8)}...{txHash.slice(-6)}
+                    </span>
+                  </div>
+                )}
               </motion.div>
 
               <button
@@ -179,8 +187,7 @@ export function VerificationResult({ status, threshold, onReset, onComplete }: V
                 INVALID
               </h3>
               <p className="mt-2 text-sm text-black/50">
-                The proof could not be verified. It may be malformed or the
-                income threshold is not met.
+                {failReason ?? "The proof could not be verified on-chain."}
               </p>
               <button
                 onClick={onReset}
