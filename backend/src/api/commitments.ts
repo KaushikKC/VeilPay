@@ -7,8 +7,12 @@ import { computeCommitment, commitmentToBytes32 } from "../utils/poseidon";
 
 export const commitmentRouter = Router();
 
-// File-backed store for hackathon demo. Survives backend restarts.
-const STORE_PATH = path.resolve(__dirname, "../../.employee-store.json");
+// File-backed store for hackathon demo. On Vercel, use /tmp (ephemeral).
+const STORE_PATH =
+  process.env.STORE_PATH ||
+  (process.env.VERCEL
+    ? "/tmp/employee-store.json"
+    : path.resolve(__dirname, "../../.employee-store.json"));
 
 type StoreEntry = { salary: string; nonce: string; commitment: string; timestamp: number };
 
