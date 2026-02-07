@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   title: "VeilPay — ZK Credentials & Private Payroll",
   description:
     "Pay employees privately on-chain. Generate zero-knowledge income proofs. Verify credentials without exposing financial data.",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [
+    { rel: "icon", url: "/character.svg", type: "image/svg+xml" },
+    { rel: "apple-touch-icon", url: "/logo.png" },
+  ],
 };
 
 const spaceGrotesk = Space_Grotesk({
