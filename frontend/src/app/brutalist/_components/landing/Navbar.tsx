@@ -7,7 +7,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 border-b-4 border-black bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link
-          href="/brutalist"
+          href="/"
           className="text-2xl font-black uppercase tracking-widest"
         >
           VEILPAY
@@ -26,7 +26,7 @@ export function Navbar() {
           >
             How It Works
           </Link>
-          <Link href="/brutalist/app" className="neo-button text-xs">
+          <Link href="/app" className="neo-button text-xs">
             Launch App
           </Link>
         </div>

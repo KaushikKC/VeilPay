@@ -60,7 +60,7 @@ export function Hero() {
           transition={{ delay: 0.6, duration: 0.5 }}
           className="mt-10 flex justify-center gap-4"
         >
-          <Link href="/brutalist/app" className="neo-button">
+          <Link href="/app" className="neo-button">
             Launch App
           </Link>
           <a href="#features" className="neo-button-secondary">

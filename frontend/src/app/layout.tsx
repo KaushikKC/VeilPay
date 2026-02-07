@@ -1,34 +1,40 @@
 import "~/styles/globals.css";
+import "~/styles/brutalist.css";
 
 import { type Metadata } from "next";
-import { Anton, Inter } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
-  title: "VeilPay — Private Payments on Sui",
+  title: "VeilPay — ZK Credentials & Private Payroll",
   description:
-    "Send and receive payments privately on the Sui blockchain. Zero-knowledge proofs ensure your financial data stays yours.",
+    "Pay employees privately on-chain. Generate zero-knowledge income proofs. Verify credentials without exposing financial data.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-const anton = Anton({
-  weight: "400",
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-anton",
+  variable: "--font-neo-body",
 });
 
-const inter = Inter({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-neo-mono",
 });
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${anton.variable} ${inter.variable}`}>
-      <body className="bg-green-950 font-sans text-white antialiased">
+    <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
+      <body
+        className="min-h-screen bg-white text-black antialiased"
+        style={{
+          fontFamily:
+            "var(--font-neo-body), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif",
+        }}
+      >
         <TRPCReactProvider>{children}</TRPCReactProvider>
       </body>
     </html>

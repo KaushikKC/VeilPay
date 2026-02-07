@@ -30,7 +30,7 @@ export function CTA() {
             </p>
 
             <div className="mt-10">
-              <Link href="/brutalist/app" className="neo-button">
+              <Link href="/app" className="neo-button">
                 Launch App
               </Link>
             </div>

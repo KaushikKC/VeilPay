@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { label: "EMPLOYER", href: "/brutalist/app/employer" },
-  { label: "EMPLOYEE", href: "/brutalist/app/employee" },
-  { label: "VERIFIER", href: "/brutalist/app/verifier" },
+  { label: "EMPLOYER", href: "/app/employer" },
+  { label: "EMPLOYEE", href: "/app/employee" },
+  { label: "VERIFIER", href: "/app/verifier" },
 ];
 
 export function AppNavbar() {
@@ -16,7 +16,7 @@ export function AppNavbar() {
     <nav className="sticky top-0 z-50 border-b-4 border-black bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-0">
         <Link
-          href="/brutalist"
+          href="/"
           className="py-4 text-xl font-black uppercase tracking-widest"
         >
           VEILPAY

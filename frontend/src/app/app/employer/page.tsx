@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardCard } from "~/app/_components/app/DashboardCard";
-import { EmployeeTable, type Employee } from "~/app/_components/employer/EmployeeTable";
-import { AddEmployeeModal } from "~/app/_components/employer/AddEmployeeModal";
-import { PayrollAction } from "~/app/_components/employer/PayrollAction";
-import { DecryptedText } from "~/app/_components/ui/DecryptedText";
+import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
+import { EmployeeTable, type Employee } from "~/app/brutalist/_components/employer/EmployeeTable";
+import { AddEmployeeModal } from "~/app/brutalist/_components/employer/AddEmployeeModal";
+import { PayrollAction } from "~/app/brutalist/_components/employer/PayrollAction";
 
 const initialEmployees: Employee[] = [
   {
@@ -69,7 +68,14 @@ export default function EmployerPage() {
     setEmployees((prev) =>
       prev.map((e) =>
         e.status === "active"
-          ? { ...e, lastPaid: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) }
+          ? {
+              ...e,
+              lastPaid: new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+            }
           : e
       )
     );
@@ -78,36 +84,34 @@ export default function EmployerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-wider text-white">
-          <DecryptedText text="EMPLOYER DASHBOARD" speed={30} delay={100} />
+        <h1 className="text-3xl font-black uppercase tracking-tighter">
+          EMPLOYER DASHBOARD
         </h1>
-        <p className="mt-1 text-white/50">Manage payroll and employee commitments.</p>
+        <p className="mt-1 text-black/50">
+          Manage payroll and employee commitments.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DashboardCard
           title="Total Employees"
           value={String(employees.length)}
-          numericValue={employees.length}
           subtitle={`${activeEmployees.length} active`}
-          icon="👥"
+          icon="USR"
           delay={0}
         />
         <DashboardCard
           title="Monthly Payroll"
           value={`$${(totalPayroll / 12).toLocaleString("en-US", { minimumFractionDigits: 0 })}`}
-          numericValue={Math.round(totalPayroll / 12)}
-          prefix="$"
           subtitle="Active employees"
-          icon="💰"
+          icon="$$$"
           delay={0.1}
         />
         <DashboardCard
           title="Payments This Month"
           value={String(paymentsThisMonth)}
-          numericValue={paymentsThisMonth}
           subtitle="ZK commitments"
-          icon="📊"
+          icon="TXN"
           delay={0.2}
         />
       </div>
@@ -115,7 +119,7 @@ export default function EmployerPage() {
       <div className="flex justify-end">
         <button
           onClick={() => setIsModalOpen(true)}
-          className="rounded-xl bg-green-500 px-6 py-2.5 text-sm font-semibold text-green-950 transition-all hover:bg-green-400 hover:shadow-lg hover:shadow-green-500/25"
+          className="neo-button text-xs"
         >
           + Add Employee
         </button>

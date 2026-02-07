@@ -9,7 +9,7 @@ const roles = [
     description:
       "Process payroll privately. Add employees, set salaries, and pay with ZK commitments.",
     icon: "EMP",
-    href: "/brutalist/app/employer",
+    href: "/app/employer",
     accent: "#00d6bd",
   },
   {
@@ -17,7 +17,7 @@ const roles = [
     description:
       "View payment history and generate zero-knowledge income proofs for landlords or lenders.",
     icon: "USR",
-    href: "/brutalist/app/employee",
+    href: "/app/employee",
     accent: "#7b61ff",
   },
   {
@@ -25,7 +25,7 @@ const roles = [
     description:
       "Verify income credentials on-chain. Confirm an applicant earns above a threshold — without seeing their salary.",
     icon: "VRF",
-    href: "/brutalist/app/verifier",
+    href: "/app/verifier",
     accent: "#ff6b35",
   },
 ];

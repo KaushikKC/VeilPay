@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardCard } from "~/app/_components/app/DashboardCard";
-import { ProofUploader } from "~/app/_components/verifier/ProofUploader";
-import { VerificationResult } from "~/app/_components/verifier/VerificationResult";
-import { DecryptedText } from "~/app/_components/ui/DecryptedText";
+import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
+import { ProofUploader } from "~/app/brutalist/_components/verifier/ProofUploader";
+import { VerificationResult } from "~/app/brutalist/_components/verifier/VerificationResult";
 
 export default function VerifierPage() {
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "failed">("idle");
@@ -14,7 +13,6 @@ export default function VerifierPage() {
   const handleVerify = (proofJson: string) => {
     setStatus("verifying");
 
-    // Parse the proof to extract threshold
     try {
       const parsed = JSON.parse(proofJson) as { publicSignals?: string[] };
       const t = Number(parsed.publicSignals?.[0]);
@@ -37,10 +35,10 @@ export default function VerifierPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-wider text-white">
-          <DecryptedText text="VERIFIER PORTAL" speed={30} delay={100} />
+        <h1 className="text-3xl font-black uppercase tracking-tighter">
+          VERIFIER PORTAL
         </h1>
-        <p className="mt-1 text-white/50">
+        <p className="mt-1 text-black/50">
           Verify income credentials without learning salary or employer details.
         </p>
       </div>
@@ -49,23 +47,22 @@ export default function VerifierPage() {
         <DashboardCard
           title="Verifications"
           value={String(verificationsCount)}
-          numericValue={verificationsCount}
           subtitle="This session"
-          icon="🔍"
+          icon="VRF"
           delay={0}
         />
         <DashboardCard
           title="Protocol"
           value="Groth16"
           subtitle="BN128 curve"
-          icon="🔐"
+          icon="ZKP"
           delay={0.1}
         />
         <DashboardCard
           title="Data Revealed"
           value="ZERO"
           subtitle="Salary & employer hidden"
-          icon="🛡️"
+          icon="////"
           delay={0.2}
         />
       </div>

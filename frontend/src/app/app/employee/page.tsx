@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardCard } from "~/app/_components/app/DashboardCard";
-import { PaymentHistory, type Payment } from "~/app/_components/employee/PaymentHistory";
-import { ProofGenerator } from "~/app/_components/employee/ProofGenerator";
-import { CredentialCard } from "~/app/_components/employee/CredentialCard";
-import { DecryptedText } from "~/app/_components/ui/DecryptedText";
+import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
+import { PaymentHistory, type Payment } from "~/app/brutalist/_components/employee/PaymentHistory";
+import { ProofGenerator } from "~/app/brutalist/_components/employee/ProofGenerator";
+import { CredentialCard } from "~/app/brutalist/_components/employee/CredentialCard";
 
 const mockPayments: Payment[] = [
   {
@@ -75,37 +74,34 @@ export default function EmployeePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-3xl tracking-wider text-white">
-          <DecryptedText text="EMPLOYEE PORTAL" speed={30} delay={100} />
+        <h1 className="text-3xl font-black uppercase tracking-tighter">
+          EMPLOYEE PORTAL
         </h1>
-        <p className="mt-1 text-white/50">View payments and generate income credentials.</p>
+        <p className="mt-1 text-black/50">
+          View payments and generate income credentials.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DashboardCard
           title="Total Earned"
           value={`$${totalEarned.toLocaleString("en-US", { minimumFractionDigits: 2 })}`}
-          numericValue={totalEarned}
-          prefix="$"
-          decimals={2}
           subtitle="All time"
-          icon="💰"
+          icon="$$$"
           delay={0}
         />
         <DashboardCard
           title="Payments Received"
           value={String(mockPayments.length)}
-          numericValue={mockPayments.length}
           subtitle="On-chain verified"
-          icon="📋"
+          icon="TXN"
           delay={0.1}
         />
         <DashboardCard
           title="Credentials Generated"
           value={String(credentials.length)}
-          numericValue={credentials.length}
           subtitle="ZK proofs"
-          icon="🔐"
+          icon="ZKP"
           delay={0.2}
         />
       </div>
@@ -121,7 +117,7 @@ export default function EmployeePage() {
 
       {credentials.length > 0 && (
         <div>
-          <h2 className="font-display mb-4 text-xl tracking-wider text-white">
+          <h2 className="mb-4 text-xl font-black uppercase tracking-tighter">
             YOUR CREDENTIALS
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

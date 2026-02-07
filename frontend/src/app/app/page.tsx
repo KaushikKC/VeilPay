@@ -2,27 +2,31 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { DecryptedText } from "~/app/_components/ui/DecryptedText";
-import { SpotlightCard } from "~/app/_components/ui/SpotlightCard";
 
 const roles = [
   {
     title: "EMPLOYER",
-    description: "Process payroll privately. Add employees, set salaries, and pay with ZK commitments.",
-    icon: "🏢",
+    description:
+      "Process payroll privately. Add employees, set salaries, and pay with ZK commitments.",
+    icon: "EMP",
     href: "/app/employer",
+    accent: "#00d6bd",
   },
   {
     title: "EMPLOYEE",
-    description: "View payment history and generate zero-knowledge income proofs for landlords or lenders.",
-    icon: "👤",
+    description:
+      "View payment history and generate zero-knowledge income proofs for landlords or lenders.",
+    icon: "USR",
     href: "/app/employee",
+    accent: "#7b61ff",
   },
   {
     title: "VERIFIER",
-    description: "Verify income credentials on-chain. Confirm an applicant earns above a threshold — without seeing their salary.",
-    icon: "🔍",
+    description:
+      "Verify income credentials on-chain. Confirm an applicant earns above a threshold — without seeing their salary.",
+    icon: "VRF",
     href: "/app/verifier",
+    accent: "#ff6b35",
   },
 ];
 
@@ -51,13 +55,11 @@ export default function AppPage() {
         transition={{ duration: 0.6 }}
         className="mb-12 text-center"
       >
-        <h1 className="font-display text-5xl tracking-wider text-white sm:text-6xl">
-          <DecryptedText text="SELECT YOUR " speed={35} delay={200} />
-          <span className="text-green-400">
-            <DecryptedText text="ROLE" speed={35} delay={600} />
-          </span>
+        <h1 className="text-5xl font-black uppercase tracking-tighter sm:text-6xl">
+          SELECT YOUR{" "}
+          <span className="text-[#00d6bd]">ROLE</span>
         </h1>
-        <p className="mt-4 text-lg text-white/50">
+        <p className="mt-4 text-lg text-black/50">
           Choose a portal to explore the VeilPay demo.
         </p>
       </motion.div>
@@ -70,23 +72,31 @@ export default function AppPage() {
       >
         {roles.map((role) => (
           <motion.div key={role.title} variants={cardVariants}>
-            <SpotlightCard className="h-full">
-              <Link
-                href={role.href}
-                className="group flex h-full flex-col items-center p-8 text-center"
+            <Link
+              href={role.href}
+              className="neo-card-interactive group flex h-full flex-col items-center p-8 text-center"
+            >
+              {/* Accent bar */}
+              <div
+                className="mb-4 h-2 w-16"
+                style={{ backgroundColor: role.accent }}
+              />
+              <div
+                className="flex h-14 w-14 items-center justify-center border-4 border-black text-lg font-black"
+                style={{ fontFamily: "var(--font-neo-mono), monospace" }}
               >
-                <span className="text-5xl">{role.icon}</span>
-                <h2 className="font-display mt-5 text-2xl tracking-wider text-white">
-                  {role.title}
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-white/50">
-                  {role.description}
-                </p>
-                <span className="mt-6 inline-block rounded-full bg-green-500/10 px-5 py-2 text-sm font-medium text-green-400 transition-all group-hover:bg-green-500 group-hover:text-green-950">
-                  Enter Portal
-                </span>
-              </Link>
-            </SpotlightCard>
+                {role.icon}
+              </div>
+              <h2 className="mt-5 text-2xl font-black uppercase tracking-tight">
+                {role.title}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-black/50">
+                {role.description}
+              </p>
+              <span className="neo-pill mt-6 border-[#00d6bd] bg-[#00d6bd]/10 text-[#008a7a] transition-all group-hover:bg-[#00d6bd] group-hover:text-white">
+                Enter Portal
+              </span>
+            </Link>
           </motion.div>
         ))}
       </motion.div>

@@ -1,41 +1,10 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-display: var(--font-anton), "Impact", "Arial Black", sans-serif;
-
-  --color-green-950: #022b1a;
-  --color-green-900: #053d27;
-  --color-green-800: #0a5c3a;
-  --color-green-700: #0f7b4e;
-  --color-green-600: #15a366;
-  --color-green-500: #1bcc80;
-  --color-green-400: #4ddb9a;
-  --color-green-300: #80e6b5;
-
-  --animate-gradient-shift: gradient-shift 3s ease infinite;
-}
-
-@keyframes gradient-shift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-}
-
 html {
   scroll-behavior: smooth;
 }
 
-body {
-  background-color: var(--color-green-950);
-}
-
 ::selection {
-  background-color: var(--color-green-600);
-  color: white;
+  background-color: #00d6bd;
+  color: black;
 }
