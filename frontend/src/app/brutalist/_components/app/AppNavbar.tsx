@@ -1,0 +1,46 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const tabs = [
+  { label: "EMPLOYER", href: "/brutalist/app/employer" },
+  { label: "EMPLOYEE", href: "/brutalist/app/employee" },
+  { label: "VERIFIER", href: "/brutalist/app/verifier" },
+];
+
+export function AppNavbar() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="sticky top-0 z-50 border-b-4 border-black bg-white">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-0">
+        <Link
+          href="/brutalist"
+          className="py-4 text-xl font-black uppercase tracking-widest"
+        >
+          VEILPAY
+        </Link>
+
+        <div className="flex">
+          {tabs.map((tab) => {
+            const isActive = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`border-l-4 border-black px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${
+                  isActive
+                    ? "bg-black text-white"
+                    : "bg-white text-black/60 hover:bg-gray-100 hover:text-black"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
+  );
+}
