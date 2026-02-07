@@ -1,0 +1,12 @@
+---
+description: Git commit message rules - no Co-authored-by
+alwaysApply: true
+---
+
+# Commit Messages
+
+When making git commits:
+
+- **Never** add `Co-authored-by: Cursor <cursoragent@cursor.com>` or any Co-authored-by line to commit messages.
+- Use only the commit message text the user or context specifies (e.g. "chore: add root .gitignore and README").
+- Do not append trailers or footers to commit messages unless the user explicitly asks for them.

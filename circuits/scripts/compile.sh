@@ -9,8 +9,13 @@ echo "=== Compiling income_proof circuit ==="
 
 mkdir -p "$BUILD_DIR"
 
-# Compile the circuit
-circom "$CIRCUIT_DIR/income_proof.circom" \
+# Compile the circuit (use npx circom2 if circom not in PATH)
+if command -v circom &>/dev/null; then
+  CIRCOM="circom"
+else
+  CIRCOM="npx circom2"
+fi
+$CIRCOM "$CIRCUIT_DIR/income_proof.circom" \
   --r1cs \
   --wasm \
   --sym \
