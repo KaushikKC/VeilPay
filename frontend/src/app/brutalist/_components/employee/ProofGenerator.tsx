@@ -50,7 +50,7 @@ export function ProofGenerator({
       const empRes = await fetch(
         `${BACKEND_URL}/api/commitments/employee/${employeeAddress}`,
       );
-      if (!empRes.ok) throw new Error("Employee data not found. Process payroll first.");
+      if (!empRes.ok) throw new Error("No payroll data found for your address. Your employer needs to process payroll first so your salary commitment is recorded.");
       const empData = (await empRes.json()) as {
         salary: string;
         nonce: string;
@@ -262,8 +262,8 @@ export function ProofGenerator({
                 Proof generation failed
               </p>
               <p className="mt-1 text-xs text-black/40">
-                {errorMsg.length > 120
-                  ? errorMsg.slice(0, 120) + "..."
+                {errorMsg.length > 200
+                  ? errorMsg.slice(0, 200) + "..."
                   : errorMsg}
               </p>
               <button

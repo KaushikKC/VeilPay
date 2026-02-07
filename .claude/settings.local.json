@@ -6,7 +6,12 @@
       "Bash(chmod:*)",
       "Bash(npm install)",
       "Bash(npx hardhat compile)",
-      "Bash(npx hardhat test:*)"
+      "Bash(npx hardhat test:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next build:*)",
+      "Bash(npx next lint)",
+      "Bash(python3:*)"
     ]
   }
 }
