@@ -1,8 +1,17 @@
+import Image from "next/image";
+
 export function Footer() {
   return (
     <footer className="border-t-4 border-black px-6 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-        <span className="text-lg font-black uppercase tracking-widest">
+        <span className="flex items-center gap-2 text-lg font-black uppercase tracking-widest">
+          <Image
+            src="/character.svg"
+            alt="VeilPay character"
+            width={32}
+            height={32}
+            className="h-8 w-auto"
+          />
           VEILPAY
         </span>
         <p className="text-sm text-black/40">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 export function Navbar() {
@@ -8,8 +9,15 @@ export function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link
           href="/"
-          className="text-2xl font-black uppercase tracking-widest"
+          className="flex items-center gap-2 text-2xl font-black uppercase tracking-widest"
         >
+          <Image
+            src="/character.svg"
+            alt="VeilPay character"
+            width={48}
+            height={48}
+            className="h-12 w-auto"
+          />
           VEILPAY
         </Link>
 

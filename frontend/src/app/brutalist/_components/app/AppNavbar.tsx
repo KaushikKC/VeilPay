@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectWalletButton } from "./ConnectWalletButton";
@@ -18,8 +19,15 @@ export function AppNavbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-0">
         <Link
           href="/"
-          className="py-4 text-xl font-black uppercase tracking-widest"
+          className="flex items-center gap-2 py-4 text-xl font-black uppercase tracking-widest"
         >
+          <Image
+            src="/character.svg"
+            alt="VeilPay character"
+            width={44}
+            height={44}
+            className="h-11 w-auto"
+          />
           VEILPAY
         </Link>
 

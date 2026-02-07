@@ -11,6 +11,7 @@ interface DecryptedTextProps {
   autoStart?: boolean;
   revealOnView?: boolean;
   trigger?: number;
+  triggerOnHover?: boolean;
   onComplete?: () => void;
   characters?: string;
 }
@@ -23,6 +24,7 @@ export function DecryptedText({
   autoStart = true,
   revealOnView = true,
   trigger,
+  triggerOnHover = false,
   onComplete,
   characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*",
 }: DecryptedTextProps) {
@@ -30,6 +32,7 @@ export function DecryptedText({
   const [started, setStarted] = useState(false);
   const hasRunOnce = useRef(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const hoverTriggerCount = useRef(0);
 
   // Initial auto-start reveal (first load)
   useEffect(() => {
@@ -108,6 +111,23 @@ export function DecryptedText({
     return () => clearInterval(interval);
   }, [started, text, speed, characters]);
 
+  const handleMouseEnter = () => {
+    if (!triggerOnHover) return;
+    hoverTriggerCount.current++;
+    setStarted(false);
+    setDisplayed(
+      text
+        .split("")
+        .map((char) =>
+          char === " "
+            ? " "
+            : characters[Math.floor(Math.random() * characters.length)]!,
+        )
+        .join(""),
+    );
+    setTimeout(() => setStarted(true), 50);
+  };
+
   return (
     <motion.span
       ref={ref}
@@ -115,6 +135,7 @@ export function DecryptedText({
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
       className={className}
+      onMouseEnter={handleMouseEnter}
     >
       {displayed}
     </motion.span>
