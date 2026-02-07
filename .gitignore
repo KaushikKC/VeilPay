@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+typechain-types/
+cache/
+artifacts/
+
+# Circuit build artifacts (large binary files)
+circuits/build/
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Next.js
+.next/
+
+# Coverage
+coverage/
