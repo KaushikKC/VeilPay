@@ -137,13 +137,14 @@ proofRouter.post("/verify", async (req: Request, res: Response) => {
     const vkey = JSON.parse(fs.readFileSync(VKEY_PATH, "utf8"));
     const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
 
-    const valid = isValid && publicSignals[2] === "1";
+    // snarkjs public signals order: [valid, threshold, commitment]
+    const valid = isValid && publicSignals[0] === "1";
 
     res.json({
       valid,
       proofValid: isValid,
-      incomeAboveThreshold: publicSignals[2] === "1",
-      threshold: publicSignals[0],
+      incomeAboveThreshold: publicSignals[0] === "1",
+      threshold: publicSignals[1],
     });
   } catch (err: any) {
     console.error("Verification error:", err);

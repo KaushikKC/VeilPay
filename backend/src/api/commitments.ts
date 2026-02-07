@@ -1,15 +1,47 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { computeCommitment, commitmentToBytes32 } from "../utils/poseidon";
 
 export const commitmentRouter = Router();
 
-// In-memory store for hackathon demo. Replace with PostgreSQL for production.
-const employeeStore = new Map<
-  string,
-  { salary: string; nonce: string; commitment: string; timestamp: number }
->();
+// File-backed store for hackathon demo. Survives backend restarts.
+const STORE_PATH = path.resolve(__dirname, "../../.employee-store.json");
+
+type StoreEntry = { salary: string; nonce: string; commitment: string; timestamp: number };
+
+const employeeStore = new Map<string, StoreEntry>();
+
+// Load persisted data on startup
+function loadStore() {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const raw = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as Record<string, StoreEntry>;
+      for (const [addr, data] of Object.entries(raw)) {
+        employeeStore.set(addr, data);
+      }
+      console.log(`Loaded ${employeeStore.size} employees from disk`);
+    }
+  } catch (err) {
+    console.error("Failed to load employee store:", err);
+  }
+}
+
+function saveStore() {
+  try {
+    const obj: Record<string, StoreEntry> = {};
+    for (const [addr, data] of employeeStore.entries()) {
+      obj[addr] = data;
+    }
+    fs.writeFileSync(STORE_PATH, JSON.stringify(obj, null, 2));
+  } catch (err) {
+    console.error("Failed to save employee store:", err);
+  }
+}
+
+loadStore();
 
 const CreateCommitmentSchema = z.object({
   employeeAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
@@ -52,6 +84,7 @@ commitmentRouter.post("/create", async (req: Request, res: Response) => {
       commitment,
       timestamp: Date.now(),
     });
+    saveStore();
 
     res.json({
       commitment: bytes32,
