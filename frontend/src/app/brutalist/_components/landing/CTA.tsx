@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 
 export function CTA() {
@@ -18,6 +19,13 @@ export function CTA() {
           <div className="danger-stripes absolute left-0 top-0 h-3 w-full" />
 
           <div className="px-4 pt-8 sm:px-12">
+            <Image
+              src="/character.svg"
+              alt="VeilPay character"
+              width={64}
+              height={64}
+              className="mx-auto mb-6 h-16 w-auto"
+            />
             <h2 className="text-4xl font-black uppercase tracking-tighter sm:text-5xl md:text-6xl">
               PRIVATE PAYROLL
               <br />
