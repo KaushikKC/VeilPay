@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { DecryptedText } from "~/app/_components/ui/DecryptedText";
+import { DecryptedText } from "~/app/brutalist/_components/ui/DecryptedText";
 
 export function Hero() {
   const [glitchHovered, setGlitchHovered] = useState(false);
@@ -40,7 +40,7 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="text-7xl leading-none font-black tracking-tighter uppercase sm:text-8xl md:text-9xl"
         >
-          PRIVATE
+          VERIFIED
           <br />
           <span className="text-[#00d6bd]">PAYROLL</span>
           <br />
@@ -76,9 +76,8 @@ export function Hero() {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-black/60"
         >
-          Pay employees privately on-chain. They prove income without revealing
-          salary. Verifiers confirm credentials with zero-knowledge proofs — no
-          data exposed, ever.
+          Enable your employees to prove their relative income to third parties without revealing their salary.
+          Pay your employees privately on-chain to keep their financial data secure and your transactions transparent.
         </motion.p>
 
         <motion.div

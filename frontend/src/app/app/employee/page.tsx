@@ -23,6 +23,7 @@ export default function EmployeePage() {
   const publicClient = usePublicClient();
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Reset credentials when wallet changes
@@ -36,10 +37,12 @@ export default function EmployeePage() {
 
     const fetchPayments = async () => {
       setFetchError(null);
+      setIsLoading(true);
       try {
         // Plasma RPC limits eth_getLogs to 10,000 blocks per query
+        // Use concrete toBlock to avoid race condition with "latest"
         const currentBlock = await publicClient.getBlockNumber();
-        const fromBlock = currentBlock > 9999n ? currentBlock - 9999n : 1n;
+        const fromBlock = currentBlock > 9000n ? currentBlock - 9000n : 1n;
 
         const logs = await publicClient.getLogs({
           address: CONTRACTS.PaymentExecutor as `0x${string}`,
@@ -56,7 +59,7 @@ export default function EmployeePage() {
           },
           args: { employee: address },
           fromBlock,
-          toBlock: "latest",
+          toBlock: currentBlock,
         });
 
         const parsed: Payment[] = logs.map((log, i) => {
@@ -84,6 +87,8 @@ export default function EmployeePage() {
           err instanceof Error ? err.message : "Failed to fetch payments",
         );
         setPayments([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -167,7 +172,7 @@ export default function EmployeePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <PaymentHistory payments={payments} />
         </div>

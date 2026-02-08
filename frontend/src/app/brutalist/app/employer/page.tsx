@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
 import { EmployeeTable, type Employee } from "~/app/brutalist/_components/employer/EmployeeTable";
 import { AddEmployeeModal } from "~/app/brutalist/_components/employer/AddEmployeeModal";
 import { PayrollAction } from "~/app/brutalist/_components/employer/PayrollAction";
+import { useRegisterEmployee, useGetEmployees } from "~/lib/hooks/usePayrollRegistry";
 
 const initialEmployees: Employee[] = [
   {
@@ -41,14 +43,37 @@ const initialEmployees: Employee[] = [
 ];
 
 export default function BrutalistEmployerPage() {
+  const { address } = useAccount();
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [paymentsThisMonth, setPaymentsThisMonth] = useState(3);
+
+  const { registerEmployee, isPending, isConfirming, isSuccess, error } = useRegisterEmployee();
+  const { data: onChainEmployees } = useGetEmployees(address);
+
+  // Close modal on success
+  useEffect(() => {
+    if (isSuccess) {
+      setIsModalOpen(false);
+    }
+  }, [isSuccess]);
+
+  // Sync on-chain employees with local state
+  useEffect(() => {
+    if (onChainEmployees && Array.isArray(onChainEmployees)) {
+      console.log("On-chain employees:", onChainEmployees);
+      // TODO: Merge with local employees or fetch metadata
+    }
+  }, [onChainEmployees]);
 
   const activeEmployees = employees.filter((e) => e.status === "active");
   const totalPayroll = activeEmployees.reduce((sum, e) => sum + e.salary, 0);
 
   const handleAddEmployee = (data: { name: string; walletAddress: string; salary: number }) => {
+    // Register employee on-chain (async)
+    registerEmployee(data.walletAddress as `0x${string}`);
+
+    // Add to local state immediately for UI feedback
     const newEmployee: Employee = {
       id: String(Date.now()),
       name: data.name,
@@ -83,16 +108,24 @@ export default function BrutalistEmployerPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter">
-          EMPLOYER DASHBOARD
-        </h1>
-        <p className="mt-1 text-black/50">
-          Manage payroll and employee commitments.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-tighter">
+            EMPLOYER DASHBOARD
+          </h1>
+          <p className="mt-1 text-black/50">
+            Manage payroll and employee commitments.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="neo-button w-full cursor-pointer text-xs sm:w-auto"
+        >
+          + Add Employee
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <DashboardCard
           title="Total Employees"
           value={String(employees.length)}
@@ -116,20 +149,11 @@ export default function BrutalistEmployerPage() {
         />
       </div>
 
-      <div className="flex justify-end">
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="neo-button text-xs"
-        >
-          + Add Employee
-        </button>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <EmployeeTable employees={employees} onRemove={handleRemoveEmployee} />
         </div>
-        <div>
+        <div className="lg:col-span-1">
           <PayrollAction
             employeeCount={activeEmployees.length}
             totalPayroll={totalPayroll}
@@ -142,6 +166,8 @@ export default function BrutalistEmployerPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddEmployee}
+        isPending={isPending || isConfirming}
+        error={error?.message}
       />
     </div>
   );

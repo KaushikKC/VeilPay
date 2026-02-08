@@ -8,28 +8,28 @@ const features = [
     accent: "#00d6bd",
     title: "ZK PRIVACY",
     description:
-      "Salaries are committed on-chain as hashes. Zero-knowledge proofs let employees prove income without revealing the exact amount.",
+      "Salaries are committed on-chain as hashes, and zero-knowledge proofs let employees prove income without revealing the exact amount.",
   },
   {
     icon: "BOLT",
     accent: "#ff6b35",
     title: "FAST PAYROLL",
     description:
-      "Process bulk payroll in a single transaction. Employees receive funds instantly with privacy-preserving commitments.",
+      "Process bulk payroll in a single transaction. Employees can receive funds instantly in a secure and private manner",
   },
   {
     icon: "LINK",
     accent: "#7b61ff",
     title: "ON-CHAIN COMPLIANCE",
     description:
-      "Prove accredited investor status, tax residency, or income thresholds — all without exposing financial data.",
+      "Prove accredited investor status, tax residency, or income thresholds - all without exposing financial data.",
   },
   {
     icon: "LOCK",
     accent: "#ff4444",
     title: "CREDENTIAL PROOFS",
     description:
-      'Generate portable ZK credentials: "I earn > $50k" for landlords, "I earn > $200k" for DeFi protocols. No salary leaked.',
+      'Generate portable ZK credentials for different third parties: e.g., "I earn > $50k" for landlords, "I earn > $200k" for DeFi protocols, without leaking your actual salary.',
   },
 ];
 
@@ -64,7 +64,7 @@ export function Features() {
             WHY VEILPAY
           </h2>
           <p className="mt-4 text-lg text-black/50">
-            Private payroll with verifiable credentials, built on
+            Verifiable payroll with private credentials, built on
             zero-knowledge proofs.
           </p>
         </motion.div>
@@ -77,15 +77,15 @@ export function Features() {
           className="grid grid-cols-1 gap-6 sm:grid-cols-2"
         >
           {features.map((feature) => (
-            <motion.div key={feature.title} variants={cardVariants}>
-              <div className="neo-card group transition-colors hover:bg-gray-50">
+            <motion.div key={feature.title} variants={cardVariants} className="flex">
+              <div className="neo-card group flex flex-col transition-colors hover:bg-gray-50">
                 {/* Color accent bar */}
                 <div
                   className="mb-4 h-2 w-16"
                   style={{ backgroundColor: feature.accent }}
                 />
                 <div
-                  className="mb-4 inline-block border-4 border-black px-3 py-1 text-xs font-black tracking-widest"
+                  className="mb-4 w-fit border-4 border-black px-2.5 py-1 text-xs font-black tracking-widest"
                   style={{
                     fontFamily: "var(--font-neo-mono), monospace",
                   }}
@@ -95,7 +95,7 @@ export function Features() {
                 <h3 className="text-xl font-black uppercase tracking-tight">
                   {feature.title}
                 </h3>
-                <p className="mt-3 leading-relaxed text-black/60">
+                <p className="mt-3 grow leading-relaxed text-black/60">
                   {feature.description}
                 </p>
               </div>

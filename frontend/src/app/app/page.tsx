@@ -13,6 +13,7 @@ const roles = [
     icon: "EMP",
     href: "/app/employer",
     accent: "#00d6bd",
+    role: "employer" as const,
   },
   {
     title: "EMPLOYEE",
@@ -21,6 +22,7 @@ const roles = [
     icon: "USR",
     href: "/app/employee",
     accent: "#7b61ff",
+    role: "employee" as const,
   },
   {
     title: "VERIFIER",
@@ -29,6 +31,7 @@ const roles = [
     icon: "VRF",
     href: "/app/verifier",
     accent: "#ff6b35",
+    role: "verifier" as const,
   },
 ];
 
@@ -62,7 +65,10 @@ export default function AppPage() {
     }
   }, [isConnected, pendingRoute, router]);
 
-  const handleEnterPortal = (href: string) => {
+  const handleEnterPortal = (href: string, roleType: "employer" | "employee" | "verifier") => {
+    // Store the selected role in localStorage
+    localStorage.setItem("veilpay_user_role", roleType);
+    
     if (isConnected) {
       // Already connected, navigate immediately
       router.push(href);
@@ -96,32 +102,32 @@ export default function AppPage() {
         animate="visible"
         className="grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3"
       >
-        {roles.map((role) => (
-          <motion.div key={role.title} variants={cardVariants} className="flex">
+        {roles.map((roleData) => (
+          <motion.div key={roleData.title} variants={cardVariants} className="flex">
             <button
-              onClick={() => handleEnterPortal(role.href)}
-              disabled={status === "pending" && pendingRoute === role.href}
+              onClick={() => handleEnterPortal(roleData.href, roleData.role)}
+              disabled={status === "pending" && pendingRoute === roleData.href}
               className="neo-card-interactive group flex w-full cursor-pointer flex-col items-center p-8 text-center disabled:cursor-wait disabled:opacity-70"
             >
               {/* Accent bar */}
               <div
                 className="mb-4 h-2 w-16"
-                style={{ backgroundColor: role.accent }}
+                style={{ backgroundColor: roleData.accent }}
               />
               <div
                 className="flex h-14 w-14 items-center justify-center border-4 border-black text-lg font-black"
                 style={{ fontFamily: "var(--font-neo-mono), monospace" }}
               >
-                {role.icon}
+                {roleData.icon}
               </div>
               <h2 className="mt-5 text-2xl font-black uppercase tracking-tight">
-                {role.title}
+                {roleData.title}
               </h2>
               <p className="mt-3 grow text-sm leading-relaxed text-black/50">
-                {role.description}
+                {roleData.description}
               </p>
               <span className="neo-pill mt-6 border-[#00d6bd] bg-[#00d6bd]/10 text-[#008a7a] transition-all group-hover:bg-[#00d6bd] group-hover:text-white">
-                {status === "pending" && pendingRoute === role.href
+                {status === "pending" && pendingRoute === roleData.href
                   ? "Connecting Wallet..."
                   : "Enter Portal"}
               </span>

@@ -5,7 +5,7 @@ import { type Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
-import { Web3Provider } from "~/app/_components/providers/Web3Provider";
+import { Web3Provider } from "~/app/brutalist/_components/providers/Web3Provider";
 
 export const metadata: Metadata = {
   title: "VeilPay — ZK Credentials & Private Payroll",

@@ -7,19 +7,19 @@ const steps = [
     number: "01",
     title: "EMPLOYER PAYS",
     description:
-      "Company processes payroll on-chain. Salary amounts are committed as hashes — funds transfer privately with ZK commitments.",
+      "Companies process their payroll on-chain. Salary amounts are then committed as hashes, and funds are transferred privately.",
   },
   {
     number: "02",
     title: "EMPLOYEE PROVES",
     description:
-      'Employee generates a zero-knowledge proof: "My income exceeds $50k/year" — without revealing the exact salary or employer.',
+      'Employees can then generate a zero-knowledge proof: e.g., "My income exceeds $50k/year" - without revealing their exact salary, or their employer.',
   },
   {
     number: "03",
     title: "VERIFIER CONFIRMS",
     description:
-      "Landlord, lender, or protocol verifies the proof on-chain. They learn the credential is valid — nothing more.",
+      "Landlords, lenders, protocols or other third-parties can verify their proof on-chain. All they can assess is the validity of the credential - not their salary or who their employer is.",
   },
 ];
 
@@ -38,7 +38,7 @@ export function HowItWorks() {
             HOW IT WORKS
           </h2>
           <p className="mt-4 text-lg text-black/50">
-            Three steps from private payroll to verifiable credentials.
+            VeilPay takes three steps to ensure verifiable credentials can happen from a private payroll.
           </p>
         </motion.div>
 

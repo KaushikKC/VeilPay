@@ -8,9 +8,10 @@ interface AddEmployeeModalProps {
   onClose: () => void;
   onAdd: (employee: { name: string; walletAddress: string; salary: number }) => void;
   isPending?: boolean;
+  error?: string;
 }
 
-export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending }: AddEmployeeModalProps) {
+export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending, error }: AddEmployeeModalProps) {
   const [name, setName] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
   const [salary, setSalary] = useState("");
@@ -18,6 +19,7 @@ export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending }: AddEmplo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !walletAddress || !salary) return;
+    if (isPending) return; // Prevent double submission
 
     onAdd({
       name,
@@ -25,10 +27,10 @@ export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending }: AddEmplo
       salary: Number(salary),
     });
 
+    // Clear form but don't close yet (will close on success via parent)
     setName("");
     setWalletAddress("");
     setSalary("");
-    onClose();
   };
 
   return (
@@ -45,7 +47,7 @@ export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending }: AddEmplo
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => !isPending && onClose()}
             className="absolute inset-0 bg-black/40"
           />
 
@@ -106,18 +108,30 @@ export function AddEmployeeModal({ isOpen, onClose, onAdd, isPending }: AddEmplo
                 />
               </div>
 
+              {error && (
+                <div className="mt-4 border-2 border-red-400 bg-red-100 p-3 text-center">
+                  <p className="text-sm font-bold text-red-700">
+                    Registration Failed
+                  </p>
+                  <p className="mt-1 text-xs text-black/60">
+                    {error.length > 150 ? error.slice(0, 150) + "..." : error}
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="neo-button-secondary flex-1 text-xs"
+                  disabled={isPending}
+                  className="neo-button-secondary flex-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="neo-button flex-1 text-xs"
+                  className="neo-button flex-1 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isPending ? "Registering..." : "Add Employee"}
                 </button>

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAccount } from "wagmi";
+import { formatUnits } from "viem";
 import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
 import {
   EmployeeTable,
@@ -14,6 +15,7 @@ import {
   useRegisterEmployee,
   useRemoveEmployee,
 } from "~/lib/hooks/usePayrollRegistry";
+import { useUSDTBalance } from "~/lib/hooks/usePaymentExecutor";
 
 interface EmployeeData {
   name: string;
@@ -35,6 +37,9 @@ export default function EmployerPage() {
     }
   });
   const [paymentCount, setPaymentCount] = useState(0);
+  const [balanceError, setBalanceError] = useState<string | undefined>();
+
+  const { data: usdtBalance } = useUSDTBalance(address);
 
   // Persist employee data to localStorage
   useEffect(() => {
@@ -49,9 +54,17 @@ export default function EmployerPage() {
     isPending: isRegistering,
     isConfirming: isRegConfirming,
     isSuccess: isRegSuccess,
+    error: regError,
   } = useRegisterEmployee();
 
   const { removeEmployee: removeEmployeeOnChain, isSuccess: isRemoveSuccess } = useRemoveEmployee();
+
+  // Close modal on successful employee registration
+  useEffect(() => {
+    if (isRegSuccess) {
+      setIsModalOpen(false);
+    }
+  }, [isRegSuccess]);
 
   // Auto-refetch employee list when register/remove tx confirms
   useEffect(() => {
@@ -78,6 +91,18 @@ export default function EmployerPage() {
 
   const handleAddEmployee = useCallback(
     (data: { name: string; walletAddress: string; salary: number }) => {
+      // Check if adding this employee would exceed USDT balance
+      if (usdtBalance != null) {
+        const balance = Number(formatUnits(usdtBalance as bigint, 6));
+        const newMonthlyTotal = (totalPayroll + data.salary) / 12;
+        if (newMonthlyTotal > balance) {
+          setBalanceError(
+            `Insufficient USDT balance. Monthly payroll would be $${newMonthlyTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })} but your balance is only $${balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}.`
+          );
+          return;
+        }
+      }
+      setBalanceError(undefined);
       const addr = data.walletAddress.toLowerCase();
       setEmployeeNames((prev) => ({
         ...prev,
@@ -85,7 +110,7 @@ export default function EmployerPage() {
       }));
       registerEmployee(data.walletAddress as `0x${string}`);
     },
-    [registerEmployee],
+    [registerEmployee, usdtBalance, totalPayroll],
   );
 
   const handleRemoveEmployee = useCallback(
@@ -119,46 +144,52 @@ export default function EmployerPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter">
-          EMPLOYER DASHBOARD
-        </h1>
-        <p className="mt-1 text-black/50">
-          Manage payroll and employee commitments.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-black uppercase tracking-tighter">
+            EMPLOYER DASHBOARD
+          </h1>
+          <p className="mt-1 text-black/50">
+            Manage payroll and employee commitments.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="neo-button w-full cursor-pointer text-xs sm:w-auto"
+        >
+          + Add Employee
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <DashboardCard
+          title="USDT Balance"
+          value={usdtBalance != null ? `$${Number(formatUnits(usdtBalance as bigint, 6)).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "--"}
+          subtitle="Available funds"
+          icon="$$$"
+          delay={0}
+        />
         <DashboardCard
           title="Total Employees"
           value={String(employees.length)}
           subtitle={`${activeEmployees.length} active`}
           icon="USR"
-          delay={0}
+          delay={0.1}
         />
         <DashboardCard
           title="Monthly Payroll"
           value={`$${(totalPayroll / 12).toLocaleString("en-US", { minimumFractionDigits: 0 })}`}
           subtitle="Active employees"
           icon="$$$"
-          delay={0.1}
+          delay={0.2}
         />
         <DashboardCard
           title="Payments This Month"
           value={String(paymentCount)}
           subtitle="ZK commitments"
           icon="TXN"
-          delay={0.2}
+          delay={0.3}
         />
-      </div>
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="neo-button text-xs"
-        >
-          + Add Employee
-        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -168,7 +199,7 @@ export default function EmployerPage() {
             onRemove={handleRemoveEmployee}
           />
         </div>
-        <div>
+        <div className="lg:col-span-1">
           <PayrollAction
             employeeCount={activeEmployees.length}
             totalPayroll={totalPayroll}
@@ -181,9 +212,10 @@ export default function EmployerPage() {
 
       <AddEmployeeModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setBalanceError(undefined); }}
         onAdd={handleAddEmployee}
         isPending={isRegistering || isRegConfirming}
+        error={balanceError ?? regError?.message}
       />
     </div>
   );

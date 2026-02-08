@@ -9,6 +9,7 @@ export interface Payment {
   amount: number;
   status: "success" | "pending";
   txHash: string;
+  commitment?: string; // Optional commitment hash
 }
 
 interface PaymentHistoryProps {
@@ -21,7 +22,7 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="neo-card p-0"
+      className="neo-card flex h-full flex-col p-0"
     >
       <div className="flex items-center justify-between border-b-4 border-black px-6 py-4">
         <h3 className="text-lg font-black uppercase tracking-wider">
@@ -54,8 +55,11 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
                   className="text-xs text-black/40"
                   style={{ fontFamily: "var(--font-neo-mono), monospace" }}
                 >
-                  tx: {payment.txHash.slice(0, 10)}...
-                  {payment.txHash.slice(-6)}
+                  {payment.commitment ? (
+                    <>commitment: {payment.commitment.slice(0, 10)}...{payment.commitment.slice(-6)}</>
+                  ) : (
+                    <>tx: {payment.txHash.slice(0, 10)}...{payment.txHash.slice(-6)}</>
+                  )}
                 </p>
               </div>
             </div>
@@ -65,7 +69,11 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
                 className="text-sm font-bold text-[#00d6bd]"
                 style={{ fontFamily: "var(--font-neo-mono), monospace" }}
               >
-                +${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                {payment.commitment ? (
+                  <span className="text-black/40">PRIVATE</span>
+                ) : (
+                  `+$${payment.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+                )}
               </span>
             </div>
           </motion.div>
@@ -73,7 +81,7 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
       </div>
 
       {payments.length === 0 && (
-        <div className="px-6 py-12 text-center text-sm text-black/30">
+        <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-sm text-black/30">
           No payments received yet.
         </div>
       )}

@@ -114,7 +114,7 @@ export default function BrutalistVerifierPage() {
             delay={0.2}
           />
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-6">
+        <div className={`mt-6 grid gap-6 ${status !== "idle" ? "grid-cols-2" : "grid-cols-1"}`}>
           <ProofUploader onVerify={handleVerify} isVerifying={status === "verifying"} />
           {status !== "idle" && (
             <VerificationResult

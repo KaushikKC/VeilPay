@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { useRouter } from "next/navigation";
 import { plasmaTestnet } from "~/lib/wagmi";
+import { AccountSwitcher } from "./AccountSwitcher";
 
 export function ConnectWalletButton() {
   const router = useRouter();
@@ -17,6 +18,8 @@ export function ConnectWalletButton() {
 
   const handleLogout = () => {
     disconnect();
+    // Clear user role on logout
+    localStorage.removeItem("veilpay_user_role");
     router.push("/");
   };
 
@@ -146,20 +149,5 @@ export function ConnectWalletButton() {
     );
   }
 
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className="border-4 border-black bg-gray-100 px-3 py-2 text-xs font-bold"
-        style={{ fontFamily: "var(--font-neo-mono), monospace" }}
-      >
-        {address!.slice(0, 6)}...{address!.slice(-4)}
-      </span>
-      <button
-        onClick={handleLogout}
-        className="cursor-pointer border-4 border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-wider text-black/60 transition-all hover:bg-red-50 hover:text-red-600"
-      >
-        Logout
-      </button>
-    </div>
-  );
+  return <AccountSwitcher />;
 }

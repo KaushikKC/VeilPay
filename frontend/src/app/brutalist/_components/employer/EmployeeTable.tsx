@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { Copy, Check } from "lucide-react";
 import { StatusBadge } from "~/app/brutalist/_components/app/StatusBadge";
 
 export interface Employee {
@@ -18,6 +20,18 @@ interface EmployeeTableProps {
 }
 
 export function EmployeeTable({ employees, onRemove }: EmployeeTableProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopyAddress = async (address: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error("Failed to copy address:", err);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -59,19 +73,34 @@ export function EmployeeTable({ employees, onRemove }: EmployeeTableProps) {
                 className="border-b-2 border-black/10 transition-colors hover:bg-gray-50"
               >
                 <td className="px-6 py-4 text-sm font-bold">{emp.name}</td>
-                <td
-                  className="px-6 py-4 text-sm text-black/60"
-                  style={{ fontFamily: "var(--font-neo-mono), monospace" }}
-                >
-                  {emp.walletAddress.slice(0, 6)}...
-                  {emp.walletAddress.slice(-4)}
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-sm text-black/60"
+                      style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+                    >
+                      {emp.walletAddress.slice(0, 6)}...
+                      {emp.walletAddress.slice(-4)}
+                    </span>
+                    <button
+                      onClick={() => handleCopyAddress(emp.walletAddress, emp.id)}
+                      className="cursor-pointer border-2 border-black bg-white p-1 transition-all hover:bg-gray-100 active:translate-x-[1px] active:translate-y-[1px]"
+                      title="Copy full address"
+                    >
+                      {copiedId === emp.id ? (
+                        <Check size={14} className="text-green-600" />
+                      ) : (
+                        <Copy size={14} className="text-black/60" />
+                      )}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-sm">
                   <span
                     className="border-2 border-black bg-gray-100 px-2 py-0.5 text-xs font-bold"
                     style={{ fontFamily: "var(--font-neo-mono), monospace" }}
                   >
-                    ******
+                    ${emp.salary.toLocaleString()}
                   </span>
                 </td>
                 <td className="px-6 py-4">

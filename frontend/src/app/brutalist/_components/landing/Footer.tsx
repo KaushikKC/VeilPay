@@ -20,19 +20,19 @@ export function Footer() {
         </p>
         <div className="flex gap-6">
           <a
-            href="#"
+            href="https://github.com/KaushikKC/VeilPay"
             className="text-sm font-bold uppercase text-black/40 transition-colors hover:text-black"
           >
             GitHub
           </a>
           <a
-            href="#"
+            href="https://github.com/KaushikKC/VeilPay/blob/main/README.md"
             className="text-sm font-bold uppercase text-black/40 transition-colors hover:text-black"
           >
             Docs
           </a>
           <a
-            href="#"
+            href="https://x.com/VEILPAY_"
             className="text-sm font-bold uppercase text-black/40 transition-colors hover:text-black"
           >
             Twitter

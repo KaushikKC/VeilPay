@@ -11,7 +11,7 @@ interface ProofGeneratorProps {
   employeeAddress?: `0x${string}`;
 }
 
-const thresholds = [
+const presetThresholds = [
   { value: 1, label: "$1", description: "Testnet demo" },
   { value: 10, label: "$10", description: "Basic verification" },
   { value: 50000, label: "$50,000", description: "Rental qualification" },
@@ -33,6 +33,8 @@ export function ProofGenerator({
   const [selectedThreshold, setSelectedThreshold] = useState<number | null>(
     null,
   );
+  const [customThreshold, setCustomThreshold] = useState("");
+  const [isCustom, setIsCustom] = useState(false);
   const [state, setState] = useState<
     "idle" | "generating" | "done" | "error"
   >("idle");
@@ -156,16 +158,18 @@ export function ProofGenerator({
         <label className="text-xs font-bold uppercase tracking-wider text-black/40">
           Select Threshold
         </label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {thresholds.map((t) => (
+        <div className="grid grid-cols-2 gap-2">
+          {presetThresholds.map((t) => (
             <button
               key={t.value}
               onClick={() => {
                 setSelectedThreshold(t.value);
+                setIsCustom(false);
+                setCustomThreshold("");
                 if (state === "done" || state === "error") setState("idle");
               }}
               className={`border-4 p-3 text-left transition-all ${
-                selectedThreshold === t.value
+                selectedThreshold === t.value && !isCustom
                   ? "border-[#00d6bd] bg-[#00d6bd]/10"
                   : "border-black/20 bg-white hover:border-black"
               }`}
@@ -179,6 +183,46 @@ export function ProofGenerator({
               <p className="text-xs text-black/40">{t.description}</p>
             </button>
           ))}
+        </div>
+        <div
+          className={`border-4 p-3 transition-all ${
+            isCustom
+              ? "border-[#00d6bd] bg-[#00d6bd]/10"
+              : "border-black/20 bg-white"
+          }`}
+        >
+          <label
+            className="text-xs font-bold uppercase tracking-wider text-black/40"
+          >
+            Custom Amount
+          </label>
+          <div className="mt-1 flex items-center gap-2">
+            <span
+              className="text-sm font-bold"
+              style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+            >
+              $
+            </span>
+            <input
+              type="number"
+              min="1"
+              placeholder="Enter amount..."
+              value={customThreshold}
+              onFocus={() => {
+                setIsCustom(true);
+                if (state === "done" || state === "error") setState("idle");
+              }}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCustomThreshold(val);
+                setIsCustom(true);
+                const num = Number(val);
+                setSelectedThreshold(num > 0 ? num : null);
+              }}
+              className="w-full border-b-2 border-black/20 bg-transparent py-1 text-sm font-bold outline-none focus:border-[#00d6bd]"
+              style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+            />
+          </div>
         </div>
       </div>
 
@@ -246,6 +290,8 @@ export function ProofGenerator({
               <button
                 onClick={() => {
                   setSelectedThreshold(null);
+                  setCustomThreshold("");
+                  setIsCustom(false);
                   setState("idle");
                 }}
                 className="mt-3 text-xs font-bold text-[#00d6bd] underline underline-offset-2 hover:text-[#008a7a]"
