@@ -7,21 +7,14 @@ import { plasmaTestnet } from "~/lib/wagmi";
 import { AccountSwitcher } from "./AccountSwitcher";
 
 export function ConnectWalletButton() {
-  const router = useRouter();
-  const { address, isConnected, chain } = useAccount();
+  const _router = useRouter();
+  const { isConnected, chain } = useAccount();
   const { connect, connectors, status, error, reset } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { disconnect: _disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const [userRejected, setUserRejected] = useState(false);
   const [noWallet, setNoWallet] = useState(false);
   const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
-
-  const handleLogout = () => {
-    disconnect();
-    // Clear user role on logout
-    localStorage.removeItem("veilpay_user_role");
-    router.push("/");
-  };
 
   const isWrongNetwork = isConnected && chain?.id !== plasmaTestnet.id;
   const isConnecting = status === "pending";

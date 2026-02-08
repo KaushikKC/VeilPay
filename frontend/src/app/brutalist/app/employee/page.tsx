@@ -14,6 +14,12 @@ interface Credential {
   generatedAt: string;
 }
 
+type CommitmentItem = {
+  commitment: `0x${string}`;
+  timestamp: bigint;
+  employer: `0x${string}`;
+};
+
 export default function BrutalistEmployeePage() {
   const { address } = useAccount();
   const [credentials, setCredentials] = useState<Credential[]>(() => {
@@ -34,7 +40,7 @@ export default function BrutalistEmployeePage() {
   const [showProofHistory, setShowProofHistory] = useState(false);
 
   // Fetch employee commitments from blockchain
-  const { data: commitments, isLoading } = useGetEmployeeCommitments(address as `0x${string}`);
+  const { data: commitments, isLoading } = useGetEmployeeCommitments(address);
 
   // Load credentials from localStorage when wallet changes
   useEffect(() => {
@@ -64,19 +70,22 @@ export default function BrutalistEmployeePage() {
     if (commitments && Array.isArray(commitments)) {
       console.log("Employee commitments:", commitments);
 
-      // Map commitments to payments
-      const mappedPayments: Payment[] = commitments.map((commitment: any, index: number) => ({
-        id: String(index + 1),
-        date: new Date().toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        }),
-        amount: 0, // Amount is hidden in the commitment
-        status: "success" as const,
-        txHash: commitment.toString().slice(0, 66), // Use commitment hash as pseudo-txHash
-        commitment: commitment.toString(),
-      }));
+      const list = commitments as CommitmentItem[];
+      const mappedPayments: Payment[] = list.map((item: CommitmentItem, index: number) => {
+        const hash = typeof item.commitment === "string" ? item.commitment : String(item.commitment);
+        return {
+          id: String(index + 1),
+          date: new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          amount: 0, // Amount is hidden in the commitment
+          status: "success" as const,
+          txHash: hash.slice(0, 66), // Use commitment hash as pseudo-txHash
+          commitment: hash,
+        };
+      });
 
       setPayments(mappedPayments);
     }
@@ -121,8 +130,6 @@ export default function BrutalistEmployeePage() {
       </div>
     );
   }
-
-  const totalEarned = payments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="space-y-6">

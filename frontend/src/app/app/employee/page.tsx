@@ -32,7 +32,7 @@ export default function EmployeePage() {
     }
   });
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [shareModal, setShareModal] = useState<{
     isOpen: boolean;
     threshold: number;

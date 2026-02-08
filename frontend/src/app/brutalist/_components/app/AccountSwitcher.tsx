@@ -15,9 +15,13 @@ export function AccountSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const formattedBalance = usdtBalance != null
-    ? Number(formatUnits(usdtBalance as bigint, 6)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : null;
+  const formattedBalance =
+    usdtBalance != null
+      ? Number(formatUnits(usdtBalance, 6)).toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : null;
 
   const handleCopyAddress = async () => {
     if (!address) return;
@@ -44,7 +48,7 @@ export function AccountSwitcher() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 border-4 border-black bg-gray-100 px-3 py-2 text-xs font-bold uppercase tracking-wider transition-all hover:bg-gray-50 active:translate-x-[1px] active:translate-y-[1px]"
+        className="flex items-center gap-2 border-4 border-black bg-gray-100 px-3 py-2 text-xs font-bold tracking-wider uppercase transition-all hover:bg-gray-50 active:translate-x-[1px] active:translate-y-[1px]"
         style={{ fontFamily: "var(--font-neo-mono), monospace" }}
       >
         {formattedBalance != null && (
@@ -71,16 +75,16 @@ export function AccountSwitcher() {
           />
 
           {/* Dropdown */}
-          <div className="absolute right-0 top-full z-50 mt-2 min-w-[280px] border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <div className="absolute top-full right-0 z-50 mt-2 min-w-[280px] border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
             <div className="border-b-4 border-black bg-gray-100 px-4 py-2">
-              <p className="text-xs font-black uppercase tracking-wider text-black/60">
+              <p className="text-xs font-black tracking-wider text-black/60 uppercase">
                 Account Options
               </p>
             </div>
 
             {/* USDT Balance */}
             <div className="flex items-center justify-between border-b-4 border-black px-4 py-3">
-              <p className="text-xs font-bold uppercase tracking-wider">
+              <p className="text-xs font-bold tracking-wider uppercase">
                 USDT Balance
               </p>
               <p
@@ -97,7 +101,7 @@ export function AccountSwitcher() {
               className="flex w-full items-center justify-between border-b-4 border-black bg-white px-4 py-3 text-left transition-colors hover:bg-gray-50"
             >
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider">
+                <p className="text-xs font-bold tracking-wider uppercase">
                   Copy Address
                 </p>
                 <p
@@ -118,7 +122,7 @@ export function AccountSwitcher() {
             <div className="bg-gray-50 px-4 py-3">
               <button
                 onClick={handleDisconnect}
-                className="w-full border-2 border-red-500 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wider text-red-600 transition-all hover:bg-red-50 active:translate-x-[1px] active:translate-y-[1px]"
+                className="w-full border-2 border-red-500 bg-white px-3 py-2 text-xs font-bold tracking-wider text-red-600 uppercase transition-all hover:bg-red-50 active:translate-x-[1px] active:translate-y-[1px]"
               >
                 Disconnect Wallet
               </button>

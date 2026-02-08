@@ -80,6 +80,7 @@ export function DecryptedText({
     );
     const timer = setTimeout(() => setStarted(true), 50);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when trigger changes
   }, [trigger]);
 
   // Run the decrypt animation
@@ -109,6 +110,7 @@ export function DecryptedText({
     }, speed);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onComplete intentionally omitted to avoid restarting animation
   }, [started, text, speed, characters]);
 
   const handleMouseEnter = () => {

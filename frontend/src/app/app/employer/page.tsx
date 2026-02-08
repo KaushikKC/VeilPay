@@ -131,7 +131,7 @@ export default function EmployerPage() {
     (data: { name: string; walletAddress: string; salary: number }) => {
       // Check if adding this employee would exceed USDT balance
       if (usdtBalance != null) {
-        const balance = Number(formatUnits(usdtBalance as bigint, 6));
+        const balance = Number(formatUnits(usdtBalance, 6));
         const newMonthlyTotal = (totalPayroll + data.salary) / 12;
         if (newMonthlyTotal > balance) {
           setBalanceError(
@@ -203,7 +203,7 @@ export default function EmployerPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
           title="USDT Balance"
-          value={usdtBalance != null ? `$${Number(formatUnits(usdtBalance as bigint, 6)).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "--"}
+          value={usdtBalance != null ? `$${Number(formatUnits(usdtBalance, 6)).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "--"}
           subtitle="Available funds"
           icon="$$$"
           delay={0}
