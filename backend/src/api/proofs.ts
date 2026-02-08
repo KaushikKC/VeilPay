@@ -79,32 +79,46 @@ proofRouter.get("/retrieve/:proofId", (req: Request, res: Response) => {
 });
 
 // Resolve paths to circuit build artifacts.
-// Check bundled artifacts first (for Vercel), then fall back to circuits/build (local dev).
-const CIRCUIT_DIR = path.resolve(__dirname, "../../../circuits/build");
-const BUNDLED_DIR = path.resolve(__dirname, "../../circuit-artifacts");
+// On Vercel, process.cwd() = project root. Locally, __dirname-based paths work.
+// Search order: env var → bundled (circuit-artifacts/) → local dev (circuits/build/)
+const PROJECT_ROOT = process.cwd();
 
-function resolveArtifact(envVar: string | undefined, bundledName: string, devPath: string): string {
-  if (envVar) return envVar;
-  const bundled = path.join(BUNDLED_DIR, bundledName);
-  if (fs.existsSync(bundled)) return bundled;
-  return devPath;
+const SEARCH_DIRS = [
+  path.join(PROJECT_ROOT, "circuit-artifacts"),
+  path.join(PROJECT_ROOT, "backend", "circuit-artifacts"),
+  path.resolve(__dirname, "../../circuit-artifacts"),
+  path.resolve(__dirname, "../../../circuits/build"),
+];
+
+function resolveArtifact(envVar: string | undefined, fileName: string, subPath?: string): string {
+  if (envVar && fs.existsSync(envVar)) return envVar;
+  for (const dir of SEARCH_DIRS) {
+    const full = path.join(dir, subPath ?? fileName);
+    if (fs.existsSync(full)) return full;
+    // Also check flat (no subdirectory)
+    const flat = path.join(dir, fileName);
+    if (flat !== full && fs.existsSync(flat)) return flat;
+  }
+  // Return last candidate for the error message
+  return path.join(SEARCH_DIRS[SEARCH_DIRS.length - 1], subPath ?? fileName);
 }
 
 const WASM_PATH = resolveArtifact(
   process.env.CIRCUIT_WASM_PATH,
   "income_proof.wasm",
-  path.join(CIRCUIT_DIR, "income_proof_js", "income_proof.wasm"),
+  "income_proof_js/income_proof.wasm",
 );
 const ZKEY_PATH = resolveArtifact(
   process.env.CIRCUIT_ZKEY_PATH,
   "income_proof_final.zkey",
-  path.join(CIRCUIT_DIR, "income_proof_final.zkey"),
 );
 const VKEY_PATH = resolveArtifact(
   process.env.CIRCUIT_VKEY_PATH,
   "verification_key.json",
-  path.join(CIRCUIT_DIR, "verification_key.json"),
 );
+
+// Log resolved paths on startup for debugging
+console.log("Circuit artifacts resolved:", { WASM_PATH, ZKEY_PATH, VKEY_PATH });
 
 const GenerateProofSchema = z.object({
   salary: z.string(),           // decimal string
