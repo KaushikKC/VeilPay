@@ -90,6 +90,55 @@ The same proof infrastructure enables broader compliance use cases:
 
 ## Quick Start
 
+**NEW: Unified Development Experience** 🚀
+
+We now have a root `package.json` that makes running the entire stack braindead easy!
+
+### Ultra-Fast Setup
+
+```bash
+# 1. Install all dependencies
+npm run install:all
+
+# 2. Setup circuits (first time only)
+npm run setup:circuits
+
+# 3. Start Hardhat node in a separate terminal
+npm run node
+
+# 4. Deploy all contracts (in another terminal)
+npm run deploy:all
+
+# 5. Start everything at once!
+npm run dev
+```
+
+That's it! This runs the Hardhat node, backend, and frontend all at once.
+
+### Unified Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | 🚀 Run all services (node + backend + frontend) |
+| `npm run build` | 🏗️ Build everything |
+| `npm test` | ✅ Run all tests |
+| `npm run install:all` | 📦 Install deps in all modules |
+| `npm run setup` | 🔧 Complete setup (install + circuits + contracts) |
+| `npm run deploy:all` | 🚢 Deploy all contracts with ZK verifier |
+| `npm run typecheck` | 📝 Type check all TypeScript |
+| `npm run clean` | 🧹 Clean all build artifacts |
+
+**Individual module commands:**
+- `npm run dev:frontend`, `npm run dev:backend`, `npm run node`
+- `npm run build:frontend`, `npm run build:backend`, `npm run build:contracts`, `npm run build:circuits`
+- `npm run test:circuits`, `npm run test:contracts`
+
+For full command reference, see the root `package.json`.
+
+---
+
+### Manual Setup (Old Way)
+
 ### 1. Smart Contracts
 
 ```bash

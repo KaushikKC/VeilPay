@@ -2,15 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import { useRouter } from "next/navigation";
 import { plasmaTestnet } from "~/lib/wagmi";
 
 export function ConnectWalletButton() {
+  const router = useRouter();
   const { address, isConnected, chain } = useAccount();
   const { connect, connectors, status, error, reset } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
   const [userRejected, setUserRejected] = useState(false);
   const [noWallet, setNoWallet] = useState(false);
+  const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+
+  const handleLogout = () => {
+    disconnect();
+    router.push("/");
+  };
 
   const isWrongNetwork = isConnected && chain?.id !== plasmaTestnet.id;
   const isConnecting = status === "pending";
@@ -18,6 +26,23 @@ export function ConnectWalletButton() {
   const hasWalletExtension =
     typeof window !== "undefined" &&
     typeof (window as unknown as { ethereum?: unknown }).ethereum !== "undefined";
+  // Auto-switch to Plasma if connected to wrong network
+  useEffect(() => {
+    if (isWrongNetwork && !isSwitchingNetwork) {
+      setIsSwitchingNetwork(true);
+      switchChain(
+        { chainId: plasmaTestnet.id },
+        {
+          onSuccess: () => {
+            setIsSwitchingNetwork(false);
+          },
+          onError: () => {
+            setIsSwitchingNetwork(false);
+          },
+        }
+      );
+    }
+  }, [isWrongNetwork, switchChain, isSwitchingNetwork]);
 
   useEffect(() => {
     if (error) {
@@ -110,14 +135,14 @@ export function ConnectWalletButton() {
     );
   }
 
-  if (isWrongNetwork) {
+  // Auto-switching to Plasma - show loading state
+  if (isWrongNetwork || isSwitchingNetwork) {
     return (
-      <button
-        onClick={() => switchChain({ chainId: plasmaTestnet.id })}
-        className="border-4 border-black bg-yellow-400 px-4 py-2 text-xs font-black uppercase tracking-wider text-black transition-all hover:bg-yellow-300"
-      >
-        Switch to Plasma
-      </button>
+      <div className="flex items-center gap-2">
+        <span className="border-4 border-black bg-yellow-100 px-4 py-2 text-xs font-black uppercase tracking-wider text-black">
+          Switching to Plasma...
+        </span>
+      </div>
     );
   }
 
@@ -130,10 +155,10 @@ export function ConnectWalletButton() {
         {address!.slice(0, 6)}...{address!.slice(-4)}
       </span>
       <button
-        onClick={() => disconnect()}
-        className="border-4 border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-black/60 transition-all hover:bg-red-50 hover:text-red-500"
+        onClick={handleLogout}
+        className="cursor-pointer border-4 border-black bg-white px-4 py-2 text-xs font-black uppercase tracking-wider text-black/60 transition-all hover:bg-red-50 hover:text-red-600"
       >
-        X
+        Logout
       </button>
     </div>
   );

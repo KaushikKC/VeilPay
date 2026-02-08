@@ -80,9 +80,9 @@ async function main() {
   console.log(`Proof generated in ${elapsed}ms\n`);
 
   console.log("Public signals:");
-  console.log("  [0] threshold:  ", publicSignals[0]);
-  console.log("  [1] commitment: ", publicSignals[1]);
-  console.log("  [2] valid:      ", publicSignals[2]);
+  console.log("  [0] valid:      ", publicSignals[0]);
+  console.log("  [1] threshold:  ", publicSignals[1]);
+  console.log("  [2] commitment: ", publicSignals[2]);
   console.log("");
 
   // ------------------------------------------------------------------
@@ -125,7 +125,7 @@ async function main() {
   );
 
   console.log("Low salary public signals:");
-  console.log("  [2] valid:", lowSignals[2], "(should be 0)");
+  console.log("  [0] valid:", lowSignals[0], "(should be 0)");
 
   const lowValid = await snarkjs.groth16.verify(vkey, lowSignals, lowProof);
   console.log("  Proof technically valid (circuit ran):", lowValid);
@@ -135,7 +135,7 @@ async function main() {
   // ------------------------------------------------------------------
   // Summary
   // ------------------------------------------------------------------
-  if (isValid && publicSignals[2] === "1") {
+  if (isValid && publicSignals[0] === "1") {
     console.log("=== ALL TESTS PASSED ===");
     process.exit(0);
   } else {

@@ -59,6 +59,8 @@ template IncomeProof() {
     commitment === hasher.out;
 }
 
-// Public signals: threshold, commitment
-// The `valid` output is also public by default.
+// Public signals output order (Circom 2.0+):
+//   [0] valid        (output signal)
+//   [1] threshold    (public input)
+//   [2] commitment   (public input)
 component main {public [threshold, commitment]} = IncomeProof();
