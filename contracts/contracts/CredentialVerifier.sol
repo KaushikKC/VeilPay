@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 ///            uint[2] calldata _pA,
 ///            uint[2][2] calldata _pB,
 ///            uint[2] calldata _pC,
-///            uint[3] calldata _pubSignals   // [threshold, commitment, valid]
+///            uint[3] calldata _pubSignals   // [valid, threshold, commitment]
 ///        ) public view returns (bool)
 interface IGroth16Verifier {
     function verifyProof(
@@ -105,14 +105,14 @@ contract CredentialVerifier is Ownable {
     // -----------------------------------------------------------------------
 
     /// @notice Verify a ZK proof that the caller's income >= threshold.
-    /// @dev    Public signals layout from the circuit:
-    ///           [0] = threshold
-    ///           [1] = commitment (Poseidon hash)
-    ///           [2] = valid (1 if salary >= threshold)
+    /// @dev    Public signals layout from the circuit (Circom 2.0+):
+    ///           [0] = valid (1 if salary >= threshold)
+    ///           [1] = threshold
+    ///           [2] = commitment (Poseidon hash)
     /// @param _pA  Groth16 proof element A.
     /// @param _pB  Groth16 proof element B.
     /// @param _pC  Groth16 proof element C.
-    /// @param _pubSignals  [threshold, commitment, valid].
+    /// @param _pubSignals  [valid, threshold, commitment].
     /// @return True if proof is valid and credential is stored.
     function verifyIncomeProof(
         uint[2] calldata _pA,
@@ -125,10 +125,10 @@ contract CredentialVerifier is Ownable {
         if (!proofValid) revert InvalidProof();
 
         // The circuit's `valid` output must be 1
-        if (_pubSignals[2] != 1) revert ProofOutputInvalid();
+        if (_pubSignals[0] != 1) revert ProofOutputInvalid();
 
-        uint256 threshold = _pubSignals[0];
-        bytes32 commitment = bytes32(_pubSignals[1]);
+        uint256 threshold = _pubSignals[1];
+        bytes32 commitment = bytes32(_pubSignals[2]);
 
         // Store credential (non-transferable, tied to msg.sender)
         _credentials[msg.sender].push(IncomeCredential({

@@ -1,7 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAccount, useConnect } from "wagmi";
+import { useEffect, useState } from "react";
 
 const roles = [
   {
@@ -47,6 +49,30 @@ const cardVariants = {
 };
 
 export default function AppPage() {
+  const router = useRouter();
+  const { isConnected } = useAccount();
+  const { connect, connectors, status } = useConnect();
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+
+  // Navigate to pending route after wallet connection
+  useEffect(() => {
+    if (isConnected && pendingRoute) {
+      router.push(pendingRoute);
+      setPendingRoute(null);
+    }
+  }, [isConnected, pendingRoute, router]);
+
+  const handleEnterPortal = (href: string) => {
+    if (isConnected) {
+      // Already connected, navigate immediately
+      router.push(href);
+    } else {
+      // Not connected, trigger wallet connection first
+      setPendingRoute(href);
+      connect({ connector: connectors[0]! });
+    }
+  };
+
   return (
     <div className="flex min-h-[80vh] flex-col items-center justify-center">
       <motion.div
@@ -71,10 +97,11 @@ export default function AppPage() {
         className="grid w-full max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3"
       >
         {roles.map((role) => (
-          <motion.div key={role.title} variants={cardVariants}>
-            <Link
-              href={role.href}
-              className="neo-card-interactive group flex h-full flex-col items-center p-8 text-center"
+          <motion.div key={role.title} variants={cardVariants} className="flex">
+            <button
+              onClick={() => handleEnterPortal(role.href)}
+              disabled={status === "pending" && pendingRoute === role.href}
+              className="neo-card-interactive group flex w-full cursor-pointer flex-col items-center p-8 text-center disabled:cursor-wait disabled:opacity-70"
             >
               {/* Accent bar */}
               <div
@@ -90,13 +117,15 @@ export default function AppPage() {
               <h2 className="mt-5 text-2xl font-black uppercase tracking-tight">
                 {role.title}
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-black/50">
+              <p className="mt-3 grow text-sm leading-relaxed text-black/50">
                 {role.description}
               </p>
               <span className="neo-pill mt-6 border-[#00d6bd] bg-[#00d6bd]/10 text-[#008a7a] transition-all group-hover:bg-[#00d6bd] group-hover:text-white">
-                Enter Portal
+                {status === "pending" && pendingRoute === role.href
+                  ? "Connecting Wallet..."
+                  : "Enter Portal"}
               </span>
-            </Link>
+            </button>
           </motion.div>
         ))}
       </motion.div>

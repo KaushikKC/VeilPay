@@ -277,6 +277,7 @@ C. Verifier Interface (Lender/Landlord)
 typescript
 const VerifierPortal = () => {
     const verifyCredential = async (proof, publicSignals) => {
+        // publicSignals order: [valid, threshold, commitment]
         // Submit to smart contract
         const isValid = await verifierContract.write.verifyIncomeProof([
             proof.pi_a,
@@ -286,7 +287,7 @@ const VerifierPortal = () => {
         ]);
 
         if (isValid) {
-            alert(`✅ Applicant earns > $${publicSignals[0]}/year`);
+            alert(`✅ Applicant earns > $${publicSignals[1]}/year`);
         }
     };
 

@@ -1,0 +1,59 @@
+{
+  "name": "veilpay",
+  "version": "1.0.0",
+  "description": "VeilPay - Privacy-preserving payroll with ZK proofs",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --names \"NODE,BACKEND,FRONTEND\" -c \"blue,green,magenta\" \"npm run node\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:full": "concurrently --names \"NODE,BACKEND,FRONTEND\" -c \"blue,green,magenta\" \"npm run node\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:contracts": "cd contracts && npm run node",
+    "node": "cd contracts && npm run node",
+    "build": "npm run build:circuits && npm run build:contracts && npm run build:backend && npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:contracts": "cd contracts && npm run compile",
+    "build:circuits": "cd circuits && npm run build",
+    "test": "npm run test:circuits && npm run test:contracts",
+    "test:circuits": "cd circuits && npm run test",
+    "test:contracts": "cd contracts && npm run test",
+    "install:all": "npm install && npm run install:frontend && npm run install:backend && npm run install:contracts && npm run install:circuits",
+    "install:frontend": "cd frontend && npm install",
+    "install:backend": "cd backend && npm install",
+    "install:contracts": "cd contracts && npm install",
+    "install:circuits": "cd circuits && npm install",
+    "compile:circuits": "cd circuits && npm run compile",
+    "compile:contracts": "cd contracts && npm run compile",
+    "setup:circuits": "cd circuits && npm run setup",
+    "deploy": "cd contracts && npm run deploy:local",
+    "deploy:all": "cd contracts && npx hardhat run scripts/deploy-all.ts --network localhost",
+    "deploy:plasma": "cd contracts && npm run deploy:plasma",
+    "clean": "npm run clean:contracts && npm run clean:circuits",
+    "clean:contracts": "cd contracts && npm run clean",
+    "clean:circuits": "cd circuits && rm -rf build",
+    "typecheck": "npm run typecheck:frontend && npm run typecheck:backend && npm run typecheck:contracts",
+    "typecheck:frontend": "cd frontend && npm run typecheck",
+    "typecheck:backend": "cd backend && npm run typecheck",
+    "typecheck:contracts": "cd contracts && npx hardhat compile",
+    "lint": "cd frontend && npm run lint",
+    "lint:fix": "cd frontend && npm run lint:fix",
+    "format": "cd frontend && npm run format:write",
+    "setup": "npm run install:all && npm run setup:circuits && npm run compile:contracts",
+    "start": "npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "zk-proofs",
+    "privacy",
+    "payroll",
+    "blockchain",
+    "circom",
+    "groth16"
+  ]
+}
