@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -13,6 +14,7 @@ const tabs = [
 
 export function AppNavbar() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <nav className="sticky top-0 z-50 border-b-4 border-black bg-white">
@@ -31,7 +33,8 @@ export function AppNavbar() {
           VEILPAY
         </Link>
 
-        <div className="flex items-center">
+        {/* Desktop nav */}
+        <div className="hidden items-center md:flex">
           {tabs.map((tab) => {
             const isActive = pathname === tab.href;
             return (
@@ -52,7 +55,44 @@ export function AppNavbar() {
             <ConnectWalletButton />
           </div>
         </div>
+
+        {/* Hamburger button */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="flex flex-col justify-center gap-[5px] md:hidden"
+          aria-label="Toggle menu"
+        >
+          <span className="block h-[3px] w-6 bg-black" />
+          <span className="block h-[3px] w-6 bg-black" />
+          <span className="block h-[3px] w-6 bg-black" />
+        </button>
       </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="border-t-4 border-black bg-white md:hidden">
+          {tabs.map((tab) => {
+            const isActive = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                onClick={() => setMenuOpen(false)}
+                className={`block border-b-2 border-black px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${
+                  isActive
+                    ? "bg-black text-white"
+                    : "text-black/60 hover:bg-gray-100 hover:text-black"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+          <div className="px-6 py-4">
+            <ConnectWalletButton />
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

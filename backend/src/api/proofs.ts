@@ -2,11 +2,81 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 // snarkjs doesn't ship proper TS types – require it
 const snarkjs = require("snarkjs");
 
 export const proofRouter = Router();
+
+// ---------------------------------------------------------------------------
+// In-memory proof storage (hackathon – no DB needed)
+// ---------------------------------------------------------------------------
+interface ProofRecord {
+  proof: unknown;
+  publicSignals: string[];
+  solidityCalldata: string;
+  threshold: string;
+  employeeAddress: string;
+  storedAt: number;
+}
+
+const proofStore = new Map<string, ProofRecord>();
+
+const StoreProofSchema = z.object({
+  proof: z.any(),
+  publicSignals: z.array(z.string()),
+  solidityCalldata: z.string(),
+  threshold: z.string(),
+  employeeAddress: z.string(),
+});
+
+/**
+ * POST /api/proofs/store
+ *
+ * Store a generated proof and return a short proofId for QR encoding.
+ */
+proofRouter.post("/store", (req: Request, res: Response) => {
+  const parsed = StoreProofSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.flatten() });
+    return;
+  }
+
+  const proofId = crypto.randomUUID();
+  const record: ProofRecord = {
+    proof: parsed.data.proof,
+    publicSignals: parsed.data.publicSignals,
+    solidityCalldata: parsed.data.solidityCalldata,
+    threshold: parsed.data.threshold,
+    employeeAddress: parsed.data.employeeAddress,
+    storedAt: Date.now(),
+  };
+  proofStore.set(proofId, record);
+
+  res.json({ proofId });
+});
+
+/**
+ * GET /api/proofs/retrieve/:proofId
+ *
+ * Retrieve a previously stored proof by its ID.
+ */
+proofRouter.get("/retrieve/:proofId", (req: Request, res: Response) => {
+  const record = proofStore.get(req.params.proofId);
+  if (!record) {
+    res.status(404).json({ error: "Proof not found or expired" });
+    return;
+  }
+
+  res.json({
+    proof: record.proof,
+    publicSignals: record.publicSignals,
+    solidityCalldata: record.solidityCalldata,
+    threshold: record.threshold,
+    employeeAddress: record.employeeAddress,
+  });
+});
 
 // Resolve paths to circuit build artifacts
 const CIRCUIT_DIR = path.resolve(__dirname, "../../../circuits/build");

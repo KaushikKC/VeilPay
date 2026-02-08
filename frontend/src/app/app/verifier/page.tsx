@@ -173,37 +173,14 @@ export default function VerifierPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <DashboardCard
-          title="Verifications"
-          value={String(verificationsCount)}
-          subtitle="This session"
-          icon="VRF"
-          delay={0}
-        />
-        <DashboardCard
-          title="Protocol"
-          value="Groth16"
-          subtitle="BN128 curve"
-          icon="ZKP"
-          delay={0.1}
-        />
-        <DashboardCard
-          title="Data Revealed"
-          value="ZERO"
-          subtitle="Salary & employer hidden"
-          icon="////"
-          delay={0.2}
-        />
-      </div>
-
       {!isConnected && (
         <div className="border-4 border-yellow-500 bg-yellow-50 p-4 text-center text-sm font-bold">
           Connect wallet to verify proofs on-chain
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Mobile: Proof uploader first, dashboard cards underneath */}
+      <div className="lg:hidden space-y-6">
         <ProofUploader
           onVerify={(json) => void handleVerify(json)}
           isVerifying={status === "verifying"}
@@ -218,6 +195,72 @@ export default function VerifierPage() {
             failReason={failReason}
           />
         )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <DashboardCard
+            title="Verifications"
+            value={String(verificationsCount)}
+            subtitle="This session"
+            icon="VRF"
+            delay={0}
+          />
+          <DashboardCard
+            title="Protocol"
+            value="Groth16"
+            subtitle="BN128 curve"
+            icon="ZKP"
+            delay={0.1}
+          />
+          <DashboardCard
+            title="Data Revealed"
+            value="ZERO"
+            subtitle="Salary & employer hidden"
+            icon="////"
+            delay={0.2}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: Dashboard cards on top, then two-column layout */}
+      <div className="hidden lg:block space-y-6">
+        <div className="grid grid-cols-3 gap-4">
+          <DashboardCard
+            title="Verifications"
+            value={String(verificationsCount)}
+            subtitle="This session"
+            icon="VRF"
+            delay={0}
+          />
+          <DashboardCard
+            title="Protocol"
+            value="Groth16"
+            subtitle="BN128 curve"
+            icon="ZKP"
+            delay={0.1}
+          />
+          <DashboardCard
+            title="Data Revealed"
+            value="ZERO"
+            subtitle="Salary & employer hidden"
+            icon="////"
+            delay={0.2}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-6">
+          <ProofUploader
+            onVerify={(json) => void handleVerify(json)}
+            isVerifying={status === "verifying"}
+          />
+          {status !== "idle" && (
+            <VerificationResult
+              status={status}
+              threshold={threshold}
+              onReset={handleReset}
+              onComplete={handleVerificationComplete}
+              txHash={txHash}
+              failReason={failReason}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

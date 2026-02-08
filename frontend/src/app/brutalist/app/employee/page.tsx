@@ -106,32 +106,22 @@ export default function BrutalistEmployeePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="space-y-6">
+          <ProofGenerator onProofGenerated={handleProofGenerated} />
+          {credentials.map((cred, i) => (
+            <CredentialCard
+              key={`${cred.threshold}-${i}`}
+              threshold={cred.threshold}
+              proofData={cred.proofData}
+              generatedAt={cred.generatedAt}
+            />
+          ))}
+        </div>
         <div className="lg:col-span-2">
           <PaymentHistory payments={mockPayments} />
         </div>
-        <div>
-          <ProofGenerator onProofGenerated={handleProofGenerated} />
-        </div>
       </div>
-
-      {credentials.length > 0 && (
-        <div>
-          <h2 className="mb-4 text-xl font-black uppercase tracking-tighter">
-            YOUR CREDENTIALS
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {credentials.map((cred, i) => (
-              <CredentialCard
-                key={`${cred.threshold}-${i}`}
-                threshold={cred.threshold}
-                proofData={cred.proofData}
-                generatedAt={cred.generatedAt}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

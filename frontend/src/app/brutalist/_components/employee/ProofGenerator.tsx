@@ -89,19 +89,27 @@ export function ProofGenerator({
       setCurrentStep(4);
       await new Promise((r) => setTimeout(r, 500));
 
-      setState("done");
-
-      const encodedProof = btoa(
-        JSON.stringify({
+      // Store proof on backend so QR only needs a short URL
+      const storeRes = await fetch(`${BACKEND_URL}/api/proofs/store`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           proof: proofData.proof,
           publicSignals: proofData.publicSignals,
           solidityCalldata: proofData.solidityCalldata,
-          protocol: "groth16",
-          curve: "bn128",
+          threshold: String(selectedThreshold),
+          employeeAddress: employeeAddress,
         }),
-      );
+      });
 
-      onProofGenerated({ threshold: selectedThreshold, proofData: encodedProof });
+      if (!storeRes.ok) throw new Error("Failed to store proof");
+
+      const { proofId } = (await storeRes.json()) as { proofId: string };
+      const proofUrl = `${window.location.origin}/brutalist/app/verify/${proofId}`;
+
+      setState("done");
+
+      onProofGenerated({ threshold: selectedThreshold, proofData: proofUrl });
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Proof generation failed";

@@ -14,9 +14,17 @@ export default function BrutalistVerifierPage() {
     setStatus("verifying");
 
     try {
-      const parsed = JSON.parse(proofJson) as { publicSignals?: string[] };
-      const t = Number(parsed.publicSignals?.[0]);
-      setThreshold(isNaN(t) ? 50000 : t);
+      const parsed = JSON.parse(proofJson) as {
+        publicSignals?: string[];
+        threshold?: string;
+      };
+      // Try the explicit threshold field first (from /api/proofs/retrieve),
+      // then fall back to publicSignals[1] (circuit output order: valid, threshold, commitment)
+      const t =
+        Number(parsed.threshold) ||
+        Number(parsed.publicSignals?.[1]) ||
+        Number(parsed.publicSignals?.[0]);
+      setThreshold(isNaN(t) || t === 0 ? 50000 : t);
     } catch {
       setThreshold(50000);
     }
@@ -43,40 +51,80 @@ export default function BrutalistVerifierPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <DashboardCard
-          title="Verifications"
-          value={String(verificationsCount)}
-          subtitle="This session"
-          icon="VRF"
-          delay={0}
-        />
-        <DashboardCard
-          title="Protocol"
-          value="Groth16"
-          subtitle="BN128 curve"
-          icon="ZKP"
-          delay={0.1}
-        />
-        <DashboardCard
-          title="Data Revealed"
-          value="ZERO"
-          subtitle="Salary & employer hidden"
-          icon="////"
-          delay={0.2}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* Mobile: Proof uploader first, then dashboard cards underneath */}
+      <div className="lg:hidden">
         <ProofUploader onVerify={handleVerify} isVerifying={status === "verifying"} />
         {status !== "idle" && (
-          <VerificationResult
-            status={status}
-            threshold={threshold}
-            onReset={handleReset}
-            onComplete={handleVerificationComplete}
-          />
+          <div className="mt-6">
+            <VerificationResult
+              status={status}
+              threshold={threshold}
+              onReset={handleReset}
+              onComplete={handleVerificationComplete}
+            />
+          </div>
         )}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <DashboardCard
+            title="Verifications"
+            value={String(verificationsCount)}
+            subtitle="This session"
+            icon="VRF"
+            delay={0}
+          />
+          <DashboardCard
+            title="Protocol"
+            value="Groth16"
+            subtitle="BN128 curve"
+            icon="ZKP"
+            delay={0.1}
+          />
+          <DashboardCard
+            title="Data Revealed"
+            value="ZERO"
+            subtitle="Salary & employer hidden"
+            icon="////"
+            delay={0.2}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: Dashboard cards on top, then two-column layout */}
+      <div className="hidden lg:block">
+        <div className="grid grid-cols-3 gap-4">
+          <DashboardCard
+            title="Verifications"
+            value={String(verificationsCount)}
+            subtitle="This session"
+            icon="VRF"
+            delay={0}
+          />
+          <DashboardCard
+            title="Protocol"
+            value="Groth16"
+            subtitle="BN128 curve"
+            icon="ZKP"
+            delay={0.1}
+          />
+          <DashboardCard
+            title="Data Revealed"
+            value="ZERO"
+            subtitle="Salary & employer hidden"
+            icon="////"
+            delay={0.2}
+          />
+        </div>
+        <div className="mt-6 grid grid-cols-2 gap-6">
+          <ProofUploader onVerify={handleVerify} isVerifying={status === "verifying"} />
+          {status !== "idle" && (
+            <VerificationResult
+              status={status}
+              threshold={threshold}
+              onReset={handleReset}
+              onComplete={handleVerificationComplete}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

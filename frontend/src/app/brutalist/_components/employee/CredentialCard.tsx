@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCode } from "react-qrcode-logo";
 
 interface CredentialCardProps {
   threshold: number;
+  /** Short retrieval URL (e.g. http://…/api/proofs/retrieve/<uuid>) */
   proofData: string;
   generatedAt?: string;
 }
@@ -14,26 +15,14 @@ export function CredentialCard({ threshold, proofData, generatedAt }: Credential
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(proofData);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShare = async () => {
-    // Try native Web Share API first (mobile / supported browsers)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `ZK Income Proof (> $${threshold.toLocaleString()})`,
-          text: proofData,
-        });
-        return;
-      } catch {
-        // User cancelled or share failed — fall through to QR
-      }
-    }
-    // Toggle QR code modal for desktop
+  const handleShare = () => {
     setShowQR(true);
   };
 
@@ -81,12 +70,12 @@ export function CredentialCard({ threshold, proofData, generatedAt }: Credential
             </div>
 
             <div className="border-2 border-black/10 bg-gray-50 p-3">
-              <p className="text-xs font-bold text-black/40">Proof Hash</p>
+              <p className="text-xs font-bold text-black/40">Proof ID</p>
               <p
                 className="mt-1 truncate text-xs text-black/60"
                 style={{ fontFamily: "var(--font-neo-mono), monospace" }}
               >
-                {proofData.slice(0, 48)}...
+                {proofData.split("/").pop() ?? proofData.slice(0, 48)}
               </p>
             </div>
 
@@ -110,10 +99,10 @@ export function CredentialCard({ threshold, proofData, generatedAt }: Credential
               onClick={() => void handleCopy()}
               className="neo-button flex-1 text-xs"
             >
-              {copied ? "Copied!" : "Copy Proof"}
+              {copied ? "Copied!" : "Copy URL"}
             </button>
             <button
-              onClick={() => void handleShare()}
+              onClick={handleShare}
               className="neo-button-secondary flex-1 text-xs"
             >
               Share
@@ -145,28 +134,76 @@ export function CredentialCard({ threshold, proofData, generatedAt }: Credential
               transition={{ duration: 0.3 }}
               className="neo-card relative w-full max-w-sm"
             >
-              <h2 className="text-xl font-black uppercase tracking-wider">
-                SHARE PROOF
-              </h2>
-              <p className="mt-1 text-xs text-black/50">
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center border-4 border-black bg-[#00d6bd]">
+                  <span className="text-sm font-black">QR</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-wider">
+                    SHARE PROOF
+                  </h2>
+                  <p className="text-xs font-bold uppercase tracking-wider text-black/40">
+                    Zero-Knowledge Credential
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-3 text-xs text-black/50">
                 Scan this QR code to receive the ZK proof. No salary or employer data is revealed.
               </p>
 
-              <div className="mt-4 flex justify-center border-4 border-black bg-white p-6">
-                <QRCodeSVG
-                  value={proofData}
-                  size={200}
-                  level="L"
-                  bgColor="#ffffff"
-                  fgColor="#000000"
-                />
+              {/* QR Code with corner accents */}
+              <div className="relative mt-4">
+                <div className="absolute -left-1 -top-1 h-4 w-4 border-l-4 border-t-4 border-[#00d6bd]" />
+                <div className="absolute -right-1 -top-1 h-4 w-4 border-r-4 border-t-4 border-[#00d6bd]" />
+                <div className="absolute -bottom-1 -left-1 h-4 w-4 border-b-4 border-l-4 border-[#00d6bd]" />
+                <div className="absolute -bottom-1 -right-1 h-4 w-4 border-b-4 border-r-4 border-[#00d6bd]" />
+
+                <div className="flex justify-center border-4 border-black bg-white p-3">
+                  <div className="scan-lines relative">
+                    <QRCode
+                      value={proofData}
+                      size={240}
+                      ecLevel="H"
+                      bgColor="#ffffff"
+                      fgColor="#0a0a0a"
+                      qrStyle="dots"
+                      eyeRadius={[
+                        [12, 12, 0, 12],
+                        [12, 12, 12, 0],
+                        [12, 0, 12, 12],
+                      ]}
+                      eyeColor="#00d6bd"
+                      logoImage="/logo.png"
+                      logoWidth={48}
+                      logoHeight={48}
+                      removeQrCodeBehindLogo
+                      logoPadding={4}
+                      logoPaddingStyle="circle"
+                      quietZone={4}
+                    />
+                  </div>
+                </div>
+
+                {/* Accent stripe bar */}
+                <div className="danger-stripes-thin h-2" />
               </div>
 
-              <div className="mt-3 border-2 border-black/10 bg-gray-50 p-2 text-center">
-                <p className="text-xs font-bold text-[#00d6bd]">
+              {/* Proof info */}
+              <div className="mt-3 border-2 border-black bg-gray-50 p-3 text-center">
+                <p
+                  className="text-sm font-black uppercase tracking-wider text-[#00d6bd]"
+                  style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+                >
                   Income &gt; ${threshold.toLocaleString()}/year
                 </p>
-                <p className="text-xs text-black/40">Groth16 / BN128</p>
+                <p
+                  className="mt-1 text-xs font-bold uppercase tracking-wider text-black/40"
+                  style={{ fontFamily: "var(--font-neo-mono), monospace" }}
+                >
+                  Groth16 / BN128 &mdash; ZK Verified
+                </p>
               </div>
 
               <div className="mt-4 flex gap-2">
@@ -174,7 +211,7 @@ export function CredentialCard({ threshold, proofData, generatedAt }: Credential
                   onClick={() => void handleCopy()}
                   className="neo-button flex-1 text-xs"
                 >
-                  {copied ? "Copied!" : "Copy Proof"}
+                  {copied ? "Copied!" : "Copy URL"}
                 </button>
                 <button
                   onClick={() => setShowQR(false)}

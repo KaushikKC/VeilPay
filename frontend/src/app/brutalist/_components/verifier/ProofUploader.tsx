@@ -8,11 +8,25 @@ interface ProofUploaderProps {
   isVerifying: boolean;
 }
 
+/** Check if a string looks like a proof retrieval URL */
+function isProofUrl(text: string): boolean {
+  return text.includes("/api/proofs/retrieve/");
+}
+
+/** Fetch full proof JSON from a retrieval URL */
+async function fetchProofFromUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch proof from URL");
+  const data: unknown = await res.json();
+  return JSON.stringify(data);
+}
+
 export function ProofUploader({ onVerify, isVerifying }: ProofUploaderProps) {
   const [proofText, setProofText] = useState("");
   const [dragActive, setDragActive] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
+  const [fetching, setFetching] = useState(false);
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<unknown>(null);
 
@@ -52,8 +66,25 @@ export function ProofUploader({ onVerify, isVerifying }: ProofUploaderProps) {
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText: string) => {
-          setProofText(decodedText.trim());
+          const scanned = decodedText.trim();
           void stopScanner();
+
+          // Auto-fetch if the QR contains a proof URL
+          if (isProofUrl(scanned)) {
+            setFetching(true);
+            fetchProofFromUrl(scanned)
+              .then((json) => {
+                setProofText(json);
+                onVerify(json);
+              })
+              .catch(() => {
+                setScanError("Failed to fetch proof from URL.");
+                setProofText(scanned);
+              })
+              .finally(() => setFetching(false));
+          } else {
+            setProofText(scanned);
+          }
         },
         () => {
           // ignore scan failures (no QR in frame yet)
@@ -82,9 +113,24 @@ export function ProofUploader({ onVerify, isVerifying }: ProofUploaderProps) {
     }
   };
 
-  const handleSubmit = () => {
-    if (!proofText.trim()) return;
-    onVerify(proofText);
+  const handleSubmit = async () => {
+    const text = proofText.trim();
+    if (!text) return;
+
+    if (isProofUrl(text)) {
+      setFetching(true);
+      try {
+        const json = await fetchProofFromUrl(text);
+        setProofText(json);
+        onVerify(json);
+      } catch {
+        setScanError("Failed to fetch proof from URL. It may have expired.");
+      } finally {
+        setFetching(false);
+      }
+    } else {
+      onVerify(text);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -174,7 +220,7 @@ export function ProofUploader({ onVerify, isVerifying }: ProofUploaderProps) {
           <textarea
             value={proofText}
             onChange={(e) => setProofText(e.target.value)}
-            placeholder="Paste the base64 proof string, drop a file, or scan a QR code..."
+            placeholder="Paste a proof URL or JSON, drop a file, or scan a QR code..."
             rows={8}
             className="neo-textarea w-full"
             style={{ fontFamily: "var(--font-neo-mono), monospace" }}
@@ -201,11 +247,11 @@ export function ProofUploader({ onVerify, isVerifying }: ProofUploaderProps) {
       </div>
 
       <button
-        onClick={handleSubmit}
-        disabled={!proofText.trim() || isVerifying}
+        onClick={() => void handleSubmit()}
+        disabled={!proofText.trim() || isVerifying || fetching}
         className="neo-button mt-4 w-full text-xs"
       >
-        {isVerifying ? "Verifying..." : "Verify Credential"}
+        {fetching ? "Fetching proof..." : isVerifying ? "Verifying..." : "Verify Credential"}
       </button>
     </motion.div>
   );
