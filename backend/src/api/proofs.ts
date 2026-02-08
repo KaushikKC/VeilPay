@@ -78,17 +78,33 @@ proofRouter.get("/retrieve/:proofId", (req: Request, res: Response) => {
   });
 });
 
-// Resolve paths to circuit build artifacts
+// Resolve paths to circuit build artifacts.
+// Check bundled artifacts first (for Vercel), then fall back to circuits/build (local dev).
 const CIRCUIT_DIR = path.resolve(__dirname, "../../../circuits/build");
-const WASM_PATH =
-  process.env.CIRCUIT_WASM_PATH ||
-  path.join(CIRCUIT_DIR, "income_proof_js", "income_proof.wasm");
-const ZKEY_PATH =
-  process.env.CIRCUIT_ZKEY_PATH ||
-  path.join(CIRCUIT_DIR, "income_proof_final.zkey");
-const VKEY_PATH =
-  process.env.CIRCUIT_VKEY_PATH ||
-  path.join(CIRCUIT_DIR, "verification_key.json");
+const BUNDLED_DIR = path.resolve(__dirname, "../../circuit-artifacts");
+
+function resolveArtifact(envVar: string | undefined, bundledName: string, devPath: string): string {
+  if (envVar) return envVar;
+  const bundled = path.join(BUNDLED_DIR, bundledName);
+  if (fs.existsSync(bundled)) return bundled;
+  return devPath;
+}
+
+const WASM_PATH = resolveArtifact(
+  process.env.CIRCUIT_WASM_PATH,
+  "income_proof.wasm",
+  path.join(CIRCUIT_DIR, "income_proof_js", "income_proof.wasm"),
+);
+const ZKEY_PATH = resolveArtifact(
+  process.env.CIRCUIT_ZKEY_PATH,
+  "income_proof_final.zkey",
+  path.join(CIRCUIT_DIR, "income_proof_final.zkey"),
+);
+const VKEY_PATH = resolveArtifact(
+  process.env.CIRCUIT_VKEY_PATH,
+  "verification_key.json",
+  path.join(CIRCUIT_DIR, "verification_key.json"),
+);
 
 const GenerateProofSchema = z.object({
   salary: z.string(),           // decimal string

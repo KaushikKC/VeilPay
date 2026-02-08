@@ -13,7 +13,10 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(",")
-      : "http://localhost:3000",
+      : [
+          "http://localhost:3000",
+          "https://veil-pay-systems.vercel.app",
+        ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
