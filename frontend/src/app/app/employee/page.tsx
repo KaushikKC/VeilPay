@@ -9,8 +9,9 @@ import {
   type Payment,
 } from "~/app/brutalist/_components/employee/PaymentHistory";
 import { ProofGenerator } from "~/app/brutalist/_components/employee/ProofGenerator";
-import { CredentialCard } from "~/app/brutalist/_components/employee/CredentialCard";
+import { ShareProofModal } from "~/app/brutalist/_components/employee/ShareProofModal";
 import { CONTRACTS } from "~/lib/contracts";
+import { useGetEmployeeCommitments } from "~/lib/hooks/usePayrollRegistry";
 
 interface Credential {
   threshold: number;
@@ -21,79 +22,172 @@ interface Credential {
 export default function EmployeePage() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
-  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>(() => {
+    if (typeof window === "undefined" || !address) return [];
+    try {
+      const stored = localStorage.getItem(`veilpay_proofs_${address.toLowerCase()}`);
+      return stored ? (JSON.parse(stored) as Credential[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [shareModal, setShareModal] = useState<{
+    isOpen: boolean;
+    threshold: number;
+    proofUrl: string;
+  }>({ isOpen: false, threshold: 0, proofUrl: "" });
+  const [showProofHistory, setShowProofHistory] = useState(false);
 
-  // Reset credentials when wallet changes
+  // Primary data source: on-chain commitments (no block range limit)
+  const { data: commitments, isLoading: commitmentsLoading } =
+    useGetEmployeeCommitments(address);
+
+  // Load credentials from localStorage when wallet changes
   useEffect(() => {
-    setCredentials([]);
+    if (!address) {
+      setCredentials([]);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(`veilpay_proofs_${address.toLowerCase()}`);
+      setCredentials(stored ? (JSON.parse(stored) as Credential[]) : []);
+    } catch {
+      setCredentials([]);
+    }
   }, [address]);
 
-  // Fetch payment events from on-chain logs
+  // Persist credentials to localStorage whenever they change
   useEffect(() => {
-    if (!address || !publicClient) return;
+    if (!address || credentials.length === 0) return;
+    localStorage.setItem(
+      `veilpay_proofs_${address.toLowerCase()}`,
+      JSON.stringify(credentials),
+    );
+  }, [credentials, address]);
 
-    const fetchPayments = async () => {
-      setFetchError(null);
+  // Build payment list from commitments + try to enrich with event amounts
+  useEffect(() => {
+    if (commitmentsLoading) return;
+
+    const buildPayments = async () => {
       setIsLoading(true);
-      try {
-        // Plasma RPC limits eth_getLogs to 10,000 blocks per query
-        // Use concrete toBlock to avoid race condition with "latest"
-        const currentBlock = await publicClient.getBlockNumber();
-        const fromBlock = currentBlock > 9000n ? currentBlock - 9000n : 1n;
 
-        const logs = await publicClient.getLogs({
-          address: CONTRACTS.PaymentExecutor as `0x${string}`,
-          event: {
-            type: "event",
-            name: "PaymentExecuted",
-            inputs: [
-              { name: "employer", type: "address", indexed: true },
-              { name: "employee", type: "address", indexed: true },
-              { name: "amount", type: "uint256", indexed: false },
-              { name: "commitment", type: "bytes32", indexed: false },
-              { name: "timestamp", type: "uint256", indexed: false },
-            ],
-          },
-          args: { employee: address },
-          fromBlock,
-          toBlock: currentBlock,
-        });
+      // Map on-chain commitments to payments
+      const commitmentList = (commitments as Array<{
+        commitment: string;
+        timestamp: bigint;
+        employer: string;
+      }>) ?? [];
 
-        const parsed: Payment[] = logs.map((log, i) => {
-          const amount = log.args.amount ?? 0n;
-          const timestamp = log.args.timestamp ?? 0n;
-          const date = new Date(Number(timestamp) * 1000);
+      const basePayments: Payment[] = commitmentList.map((c, i) => {
+        const timestamp = Number(c.timestamp ?? 0n);
+        const date = timestamp > 0
+          ? new Date(timestamp * 1000)
+          : new Date();
 
-          return {
-            id: String(i),
-            date: date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            }),
-            amount: Number(formatUnits(amount, 6)),
-            status: "success" as const,
-            txHash: log.transactionHash ?? "0x",
-          };
-        });
+        return {
+          id: String(i),
+          date: date.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          amount: 0,
+          status: "success" as const,
+          txHash: "0x",
+          commitment: c.commitment?.toString() ?? "",
+        };
+      });
 
-        setPayments(parsed.reverse());
-      } catch (err) {
-        console.error("Failed to fetch payment logs:", err);
-        setFetchError(
-          err instanceof Error ? err.message : "Failed to fetch payments",
-        );
-        setPayments([]);
-      } finally {
-        setIsLoading(false);
+      // Try to enrich with PaymentExecuted event data for amounts/txHashes
+      if (publicClient && address && commitmentList.length > 0) {
+        try {
+          const currentBlock = await publicClient.getBlockNumber();
+          // Scan in 9000-block chunks, up to ~50k blocks back
+          const maxScan = 50000n;
+          const startBlock = currentBlock > maxScan ? currentBlock - maxScan : 1n;
+          const chunkSize = 9000n;
+
+          const allLogs: Array<{
+            args: { amount?: bigint; commitment?: string; timestamp?: bigint };
+            transactionHash?: string;
+          }> = [];
+
+          for (let to = currentBlock; to > startBlock; to -= chunkSize) {
+            const from = to - chunkSize + 1n > startBlock ? to - chunkSize + 1n : startBlock;
+            const logs = await publicClient.getLogs({
+              address: CONTRACTS.PaymentExecutor as `0x${string}`,
+              event: {
+                type: "event",
+                name: "PaymentExecuted",
+                inputs: [
+                  { name: "employer", type: "address", indexed: true },
+                  { name: "employee", type: "address", indexed: true },
+                  { name: "amount", type: "uint256", indexed: false },
+                  { name: "commitment", type: "bytes32", indexed: false },
+                  { name: "timestamp", type: "uint256", indexed: false },
+                ],
+              },
+              args: { employee: address },
+              fromBlock: from,
+              toBlock: to,
+            });
+            allLogs.push(...logs);
+            if (from <= startBlock) break;
+          }
+
+          // Build a lookup by commitment hash
+          const eventsByCommitment = new Map<string, {
+            amount: bigint;
+            txHash: string;
+            timestamp: bigint;
+          }>();
+          for (const log of allLogs) {
+            const commitHash = log.args.commitment?.toString() ?? "";
+            if (commitHash) {
+              eventsByCommitment.set(commitHash, {
+                amount: log.args.amount ?? 0n,
+                txHash: log.transactionHash ?? "0x",
+                timestamp: log.args.timestamp ?? 0n,
+              });
+            }
+          }
+
+          // Enrich base payments with event data
+          for (const payment of basePayments) {
+            const eventData = eventsByCommitment.get(payment.commitment ?? "");
+            if (eventData) {
+              payment.amount = Number(formatUnits(eventData.amount, 6));
+              payment.txHash = eventData.txHash;
+              // Use event timestamp if commitment timestamp was 0
+              if (payment.date === new Date(0).toLocaleDateString("en-US", {
+                month: "short", day: "numeric", year: "numeric",
+              })) {
+                const ts = Number(eventData.timestamp);
+                if (ts > 0) {
+                  payment.date = new Date(ts * 1000).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  });
+                }
+              }
+            }
+          }
+        } catch (err) {
+          // Event enrichment failed - payments will show as PRIVATE
+          console.warn("Event enrichment failed:", err);
+        }
       }
+
+      setPayments(basePayments.reverse());
+      setIsLoading(false);
     };
 
-    void fetchPayments();
-  }, [address, publicClient]);
+    void buildPayments();
+  }, [commitments, commitmentsLoading, address, publicClient]);
 
   const totalEarned = payments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -114,6 +208,12 @@ export default function EmployeePage() {
       },
       ...prev,
     ]);
+    // Auto-open the share modal
+    setShareModal({
+      isOpen: true,
+      threshold: proof.threshold,
+      proofUrl: proof.proofData,
+    });
   };
 
   if (!isConnected) {
@@ -142,12 +242,6 @@ export default function EmployeePage() {
         </p>
       </div>
 
-      {fetchError && (
-        <div className="border-4 border-yellow-500 bg-yellow-50 p-3 text-center text-xs font-bold text-yellow-700">
-          Log query failed: {fetchError}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <DashboardCard
           title="Total Earned"
@@ -172,9 +266,59 @@ export default function EmployeePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-4">
           <PaymentHistory payments={payments} />
+
+          {credentials.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowProofHistory(!showProofHistory)}
+                className="neo-button-secondary w-full text-xs"
+              >
+                {showProofHistory
+                  ? "HIDE PROOF HISTORY"
+                  : `PROOF HISTORY (${credentials.length})`}
+              </button>
+
+              {showProofHistory && (
+                <div className="mt-3 space-y-2">
+                  {credentials.map((cred, i) => (
+                    <div
+                      key={`${cred.threshold}-${i}`}
+                      className="flex items-center justify-between border-4 border-black/20 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+                    >
+                      <div>
+                        <p className="text-sm font-bold">
+                          Income &gt; ${cred.threshold.toLocaleString()}
+                        </p>
+                        <p
+                          className="text-xs text-black/40"
+                          style={{
+                            fontFamily: "var(--font-neo-mono), monospace",
+                          }}
+                        >
+                          {cred.generatedAt} &mdash; Groth16 / BN128
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setShareModal({
+                            isOpen: true,
+                            threshold: cred.threshold,
+                            proofUrl: cred.proofData,
+                          })
+                        }
+                        className="neo-button cursor-pointer text-xs"
+                      >
+                        Share
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div>
           <ProofGenerator
@@ -184,23 +328,14 @@ export default function EmployeePage() {
         </div>
       </div>
 
-      {credentials.length > 0 && (
-        <div>
-          <h2 className="mb-4 text-xl font-black uppercase tracking-tighter">
-            YOUR CREDENTIALS
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {credentials.map((cred, i) => (
-              <CredentialCard
-                key={`${cred.threshold}-${i}`}
-                threshold={cred.threshold}
-                proofData={cred.proofData}
-                generatedAt={cred.generatedAt}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      <ShareProofModal
+        isOpen={shareModal.isOpen}
+        onClose={() =>
+          setShareModal((prev) => ({ ...prev, isOpen: false }))
+        }
+        threshold={shareModal.threshold}
+        proofUrl={shareModal.proofUrl}
+      />
     </div>
   );
 }

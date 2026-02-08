@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, usePublicClient } from "wagmi";
 import { formatUnits } from "viem";
 import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
 import {
@@ -16,6 +16,7 @@ import {
   useRemoveEmployee,
 } from "~/lib/hooks/usePayrollRegistry";
 import { useUSDTBalance } from "~/lib/hooks/usePaymentExecutor";
+import { CONTRACTS, PayrollRegistryABI } from "~/lib/contracts";
 
 interface EmployeeData {
   name: string;
@@ -24,6 +25,7 @@ interface EmployeeData {
 
 export default function EmployerPage() {
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [employeeNames, setEmployeeNames] = useState<
     Record<string, EmployeeData>
@@ -89,6 +91,42 @@ export default function EmployerPage() {
   const activeEmployees = employees.filter((e) => e.status === "active");
   const totalPayroll = activeEmployees.reduce((sum, e) => sum + e.salary, 0);
 
+  // Fetch payment count from on-chain commitments for each employee
+  const fetchPaymentCount = useCallback(async () => {
+    if (!publicClient || !address || !onChainEmployees?.length) {
+      setPaymentCount(0);
+      return;
+    }
+
+    try {
+      let total = 0;
+      for (const empAddr of onChainEmployees) {
+        const result = await publicClient.readContract({
+          address: CONTRACTS.PayrollRegistry as `0x${string}`,
+          abi: PayrollRegistryABI,
+          functionName: "getEmployeeCommitments",
+          args: [empAddr],
+        });
+        const commitmentList = result as Array<{
+          commitment: string;
+          timestamp: bigint;
+          employer: string;
+        }>;
+        // Count commitments where employer matches current user
+        total += commitmentList.filter(
+          (c) => c.employer.toLowerCase() === address.toLowerCase(),
+        ).length;
+      }
+      setPaymentCount(total);
+    } catch (err) {
+      console.warn("Failed to fetch payment count:", err);
+    }
+  }, [publicClient, address, onChainEmployees]);
+
+  useEffect(() => {
+    void fetchPaymentCount();
+  }, [fetchPaymentCount]);
+
   const handleAddEmployee = useCallback(
     (data: { name: string; walletAddress: string; salary: number }) => {
       // Check if adding this employee would exceed USDT balance
@@ -123,9 +161,10 @@ export default function EmployerPage() {
   );
 
   const handleProcessPayroll = useCallback(() => {
-    setPaymentCount((prev) => prev + 1);
     void refetchEmployees();
-  }, [refetchEmployees]);
+    // Re-fetch payment count from on-chain after payroll completes
+    setTimeout(() => void fetchPaymentCount(), 2000);
+  }, [refetchEmployees, fetchPaymentCount]);
 
   if (!isConnected) {
     return (

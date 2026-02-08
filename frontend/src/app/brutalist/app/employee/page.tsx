@@ -5,7 +5,7 @@ import { useAccount } from "wagmi";
 import { DashboardCard } from "~/app/brutalist/_components/app/DashboardCard";
 import { PaymentHistory, type Payment } from "~/app/brutalist/_components/employee/PaymentHistory";
 import { ProofGenerator } from "~/app/brutalist/_components/employee/ProofGenerator";
-import { CredentialCard } from "~/app/brutalist/_components/employee/CredentialCard";
+import { ShareProofModal } from "~/app/brutalist/_components/employee/ShareProofModal";
 import { useGetEmployeeCommitments } from "~/lib/hooks/usePayrollRegistry";
 
 interface Credential {
@@ -16,11 +16,48 @@ interface Credential {
 
 export default function BrutalistEmployeePage() {
   const { address } = useAccount();
-  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>(() => {
+    if (typeof window === "undefined" || !address) return [];
+    try {
+      const stored = localStorage.getItem(`veilpay_proofs_${address.toLowerCase()}`);
+      return stored ? (JSON.parse(stored) as Credential[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [shareModal, setShareModal] = useState<{
+    isOpen: boolean;
+    threshold: number;
+    proofUrl: string;
+  }>({ isOpen: false, threshold: 0, proofUrl: "" });
+  const [showProofHistory, setShowProofHistory] = useState(false);
 
   // Fetch employee commitments from blockchain
   const { data: commitments, isLoading } = useGetEmployeeCommitments(address as `0x${string}`);
+
+  // Load credentials from localStorage when wallet changes
+  useEffect(() => {
+    if (!address) {
+      setCredentials([]);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(`veilpay_proofs_${address.toLowerCase()}`);
+      setCredentials(stored ? (JSON.parse(stored) as Credential[]) : []);
+    } catch {
+      setCredentials([]);
+    }
+  }, [address]);
+
+  // Persist credentials to localStorage whenever they change
+  useEffect(() => {
+    if (!address || credentials.length === 0) return;
+    localStorage.setItem(
+      `veilpay_proofs_${address.toLowerCase()}`,
+      JSON.stringify(credentials),
+    );
+  }, [credentials, address]);
 
   // Convert blockchain commitments to payment history
   useEffect(() => {
@@ -59,6 +96,11 @@ export default function BrutalistEmployeePage() {
       },
       ...prev,
     ]);
+    setShareModal({
+      isOpen: true,
+      threshold: proof.threshold,
+      proofUrl: proof.proofData,
+    });
   };
 
   // Show loading state
@@ -117,22 +159,73 @@ export default function BrutalistEmployeePage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div>
           <ProofGenerator onProofGenerated={handleProofGenerated} />
-          {credentials.map((cred, i) => (
-            <CredentialCard
-              key={`${cred.threshold}-${i}`}
-              threshold={cred.threshold}
-              proofData={cred.proofData}
-              generatedAt={cred.generatedAt}
-            />
-          ))}
         </div>
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-4">
           <PaymentHistory payments={payments} />
+
+          {credentials.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowProofHistory(!showProofHistory)}
+                className="neo-button-secondary w-full text-xs"
+              >
+                {showProofHistory
+                  ? "HIDE PROOF HISTORY"
+                  : `PROOF HISTORY (${credentials.length})`}
+              </button>
+
+              {showProofHistory && (
+                <div className="mt-3 space-y-2">
+                  {credentials.map((cred, i) => (
+                    <div
+                      key={`${cred.threshold}-${i}`}
+                      className="flex items-center justify-between border-4 border-black/20 bg-white px-4 py-3 transition-colors hover:bg-gray-50"
+                    >
+                      <div>
+                        <p className="text-sm font-bold">
+                          Income &gt; ${cred.threshold.toLocaleString()}
+                        </p>
+                        <p
+                          className="text-xs text-black/40"
+                          style={{
+                            fontFamily: "var(--font-neo-mono), monospace",
+                          }}
+                        >
+                          {cred.generatedAt} &mdash; Groth16 / BN128
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setShareModal({
+                            isOpen: true,
+                            threshold: cred.threshold,
+                            proofUrl: cred.proofData,
+                          })
+                        }
+                        className="neo-button cursor-pointer text-xs"
+                      >
+                        Share
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      <ShareProofModal
+        isOpen={shareModal.isOpen}
+        onClose={() =>
+          setShareModal((prev) => ({ ...prev, isOpen: false }))
+        }
+        threshold={shareModal.threshold}
+        proofUrl={shareModal.proofUrl}
+      />
     </div>
   );
 }

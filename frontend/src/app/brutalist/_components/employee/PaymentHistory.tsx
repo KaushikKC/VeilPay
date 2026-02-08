@@ -22,7 +22,7 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="neo-card flex h-full flex-col p-0"
+      className="neo-card p-0"
     >
       <div className="flex items-center justify-between border-b-4 border-black px-6 py-4">
         <h3 className="text-lg font-black uppercase tracking-wider">
@@ -81,7 +81,7 @@ export function PaymentHistory({ payments }: PaymentHistoryProps) {
       </div>
 
       {payments.length === 0 && (
-        <div className="flex flex-1 items-center justify-center px-6 py-12 text-center text-sm text-black/30">
+        <div className="px-6 py-12 text-center text-sm text-black/30">
           No payments received yet.
         </div>
       )}

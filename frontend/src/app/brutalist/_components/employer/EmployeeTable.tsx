@@ -112,7 +112,7 @@ export function EmployeeTable({ employees, onRemove }: EmployeeTableProps) {
                 <td className="px-6 py-4">
                   <button
                     onClick={() => onRemove(emp.id)}
-                    className="text-xs font-bold uppercase text-red-500/60 transition-colors hover:text-red-600"
+                    className="cursor-pointer text-xs font-bold uppercase text-red-500/60 transition-colors hover:text-red-600"
                   >
                     Remove
                   </button>
