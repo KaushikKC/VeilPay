@@ -48,9 +48,17 @@ export default function EmployerPage() {
     registerEmployee,
     isPending: isRegistering,
     isConfirming: isRegConfirming,
+    isSuccess: isRegSuccess,
   } = useRegisterEmployee();
 
-  const { removeEmployee: removeEmployeeOnChain } = useRemoveEmployee();
+  const { removeEmployee: removeEmployeeOnChain, isSuccess: isRemoveSuccess } = useRemoveEmployee();
+
+  // Auto-refetch employee list when register/remove tx confirms
+  useEffect(() => {
+    if (isRegSuccess || isRemoveSuccess) {
+      void refetchEmployees();
+    }
+  }, [isRegSuccess, isRemoveSuccess, refetchEmployees]);
 
   // Build employee list from on-chain addresses + local name/salary store
   const employees: Employee[] = (onChainEmployees ?? []).map((addr, i) => {
@@ -76,9 +84,8 @@ export default function EmployerPage() {
         [addr]: { name: data.name, salary: data.salary },
       }));
       registerEmployee(data.walletAddress as `0x${string}`);
-      setTimeout(() => void refetchEmployees(), 3000);
     },
-    [registerEmployee, refetchEmployees],
+    [registerEmployee],
   );
 
   const handleRemoveEmployee = useCallback(
@@ -86,14 +93,13 @@ export default function EmployerPage() {
       const emp = employees.find((e) => e.id === id);
       if (!emp) return;
       removeEmployeeOnChain(emp.walletAddress as `0x${string}`);
-      setTimeout(() => void refetchEmployees(), 3000);
     },
-    [employees, removeEmployeeOnChain, refetchEmployees],
+    [employees, removeEmployeeOnChain],
   );
 
   const handleProcessPayroll = useCallback(() => {
     setPaymentCount((prev) => prev + 1);
-    setTimeout(() => void refetchEmployees(), 3000);
+    void refetchEmployees();
   }, [refetchEmployees]);
 
   if (!isConnected) {
